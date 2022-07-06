@@ -1,45 +1,56 @@
 import React from 'react';
-import './App.css';
 import { FontAwesomeIcon as Icon } from '@fortawesome/react-fontawesome';
+import { faArrowDown, faArrowUp, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import './App.css';
 
 function App() {
   return (
     <div id='container'>
       <header>
-        <h1>Previsão do tempo</h1>
+        <h1>Previsão do tempo 🌤️</h1>
       </header>
 
       <main>
         <div id="weather-info">
+          <button id='close-weather-info'>
+            <i>
+              <Icon icon={faXmark} />
+            </i>
+          </button>
+          
           <span id="city-name">Niterói, RJ - Brasil</span>
 
-          <span id="temperature">20ºC Nublado</span>
+          <span id="temperature">20º Nublado</span>
 
           <section id="more-info">
             <div>
               <div id='limit-temperatures'>
                 <div id="min">
-                  <Icon icon='arrow-down' />
-                  16ºC
+                  <i>
+                    <Icon icon={faArrowDown} />
+                  </i>
+                  16º
                 </div>
                 <div id="max">
-                  <image />
-                  25ºC
+                  <i>
+                    <Icon icon={faArrowUp} />
+                  </i>
+                  25º
                 </div>
               </div>
 
               <div id='wind-speed'>
-                Vento: <span>18km/h</span>
+                <span className='light-text'>Vento: </span>18km/h
               </div>
             </div>
 
             <div>
               <div id='feels-like'>
-                Sensação: <span>19ºC</span>
+                <span className="light-text">Sensação: </span>19º
               </div>
 
               <div id='air-humidity'>
-                Umidade: <span>89%</span>
+                <span className="light-text">Umidade: </span>89%
               </div>
             </div>
           </section>
@@ -48,52 +59,77 @@ function App() {
 
           <section id="next-days">
             <div>
-              Terça
-              <span></span>
+              <span className="day-name">Ter</span>
+              <div className="temperatures">
+                <span className="min">18º</span>
+                <span className="max">25º</span>
+              </div>
             </div>
             <div>
-              Quarta
-              <span>18ºC - 26ºC</span>
+              <span className="day-name">Qua</span>
+              <div className="temperatures">
+                <span className="min">18º</span>
+                <span className="max">25º</span>
+              </div>
             </div>
             <div>
-              Quinta
-              <span>18ºC - 26ºC</span>
+              <span className="day-name">Qui</span>
+              <div className="temperatures">
+                <span className="min">18º</span>
+                <span className="max">25º</span>
+              </div>
             </div>
             <div>
-              Sexta
-              <span>18ºC - 26ºC</span>
+              <span className="day-name">Sex</span>
+              <div className="temperatures">
+                <span className="min">18º</span>
+                <span className="max">25º</span>
+              </div>
             </div>
             <div>
-              Sábado
-              <span>18ºC - 26ºC</span>
+              <span className="day-name">Sáb</span>
+              <div className="temperatures">
+                <span className="min">18º</span>
+                <span className="max">25º</span>
+              </div>
             </div>
           </section>
         </div>
 
-        <input
-          type='text'
-          placeholder='Insira aqui o nome da cidade'
-        >
-
-        </input>
+        <section id="search">
+          <input
+            id='search-input'
+            type='text'
+            placeholder='Insira aqui o nome da cidade'
+          />
+          
+          <button id="search-icon">
+            <i>
+              <Icon icon={faMagnifyingGlass} />
+            </i>
+          </button>
+        </section>
+        
 
         <div className='line-separator' />
 
         <section id='capitals'>
           <h3>Capitais</h3>
 
-          <table>
-            <tr>
-              <th>Min</th>
-              <th>Max</th>
-              <th></th>
-            </tr>
-            <tr>
-              <td>10ºC</td>
-              <td>15ºC</td>
-              <td>São Paulo</td>
-            </tr>
-          </table>
+          <div id="capitals-list">
+            <ul>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+              <li>Sao Paulo</li>
+            </ul>
+          </div>
         </section>
       </main>
     </div>
