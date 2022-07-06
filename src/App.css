@@ -1,38 +1,218 @@
-.App {
-  text-align: center;
+@import url('./assets/css/reset.css');
+
+/* Font - Open Sans */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;500;700&display=swap');
+
+:root {
+  --main-text-color: #505050;
+  --secondary-text-color: #404040;
+  --primary-orange-color: #FE9A1B;
+  --secondary-orange-color: #FB8012;
+  --white-bg-color: #FFF3E4;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  font-family: 'Open Sans', sans-serif;
+  background: linear-gradient(0deg, rgba(254,187,37,1) 0%, rgba(251,127,18,1) 100%);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+#container {
+  width: 550px;
+  /* height: 100%; */
+  margin: auto;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+header {
+  padding: 10px 20px;
+}
+
+header h1 {
+  font-size: 36px;
+  font-weight: bold;
+  color: #FFF;
+  text-align: center;
+}
+
+#weather-info {
+  display: flex;
+  flex-direction: column; 
+  background-color: var(--white-bg-color);
+  width: calc(100% - 100px);
+  padding: 20px 50px;
+  margin-top: 10px;
+  position: relative;
+  box-shadow: 0 1px 10px rgb(129, 129, 129);
+}
+
+#weather-info > #close-weather-info {
+  position: absolute;
+  right: 25px;
+  color: var(--primary-orange-color);
+  font-size: 20px;
+  top: 15px;
+  cursor: pointer;
+}
+
+#weather-info > #city-name {
+  color: var(--main-text-color);
+  font-weight: bold;
+  font-size: 16px;
+}
+
+#weather-info > #temperature {
+  font-size: 44px;
+  font-weight: bold;
+  color: var(--secondary-text-color);
+  margin: 20px 0;
+  word-wrap: break-word;
+}
+
+#weather-info > #more-info {
+  display: flex;
+  column-gap: 30px;
+}
+
+#weather-info > #more-info > div {
+  display: flex;
+  flex-direction: column;
+  row-gap: 15px;
+}
+
+#weather-info #limit-temperatures {
+  display: flex;
+  column-gap: 15px;
+  font-weight: bold;
+  color: var(--secondary-text-color);
+}
+
+#weather-info #limit-temperatures i {
+  color: var(--primary-orange-color);
+  margin-right: 5px;
+}
+
+.light-text {
+  font-weight: lighter;
+}
+
+#weather-info .line-separator {
+  background-color: var(--primary-orange-color);
+  height: 1px;
+  margin: 15px 0;
+  position: relative;
+  width: calc(100% + 50px);
+  right: 25px;
+}
+
+#weather-info > #next-days {
+  display: flex;
+  flex-direction: row;
+  column-gap: 20px;
+}
+
+#weather-info > #next-days > div {
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+}
+
+#weather-info > #next-days > div > .day-name {
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--main-text-color);
+}
+
+#weather-info > #next-days > div > .temperatures {
+  display: flex;
+  flex-direction: row;
+  column-gap: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--secondary-orange-color);
+}
+
+#search {
+  display: flex;
+  width: calc(100% - 100px);
+  margin: 20px 0;
+  height: 50px;
+  position: relative;
+}
+
+#search > #search-input {
+  padding: 0 40px 0 20px;
+  width: 100%;
+  background-color: var(--white-bg-color);
+  font-size: 20px;
+  font-weight: lighter;
+  color: var(--main-text-color);
+  border: 1px solid var(--secondary-orange-color);
+}
+
+#search > #search-icon {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  font-size: 24px;
+  color: var(--main-text-color);
+  cursor: pointer;
+}
+
+main > .line-separator {
+  background-color: var(--white-bg-color);
+  height: 1px;
+  width: 100%;
+  margin: 15px 0;
+}
+
+#capitals {
+  width: 100%;
+  padding: 0 50px;
+}
+
+#capitals h3 {
+  font-size: 36px;
+  font-weight: bold;
+  color: var(--white-bg-color);
+}
+
+/* #capitals ul {
+  border: 1px solid red;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  height: 150px;
+} */
+
+#capitals table {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  height: 250px;
+}
+
+#capitals table th {
+  font-weight: lighter;
+  font-size: 14px;
+}
+
+#capitals table td {
+  font-weight: bold;
+  min-width: 35px;
+}
+
+#capitals table th,
+#capitals table td {
+  padding: 15px 10px 0 0;
+  color: #222222;
+}
+
+#capitals table th:last-child,
+#capitals table td:last-child  {
+  padding-left: 10px;
 }
