@@ -1,4 +1,4 @@
-@import url('./assets/css/reset.css');
+@import url('./reset.css');
 
 /* Font - Open Sans */
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;500;700&display=swap');
@@ -8,7 +8,11 @@
   --secondary-text-color: #404040;
   --primary-orange-color: #FE9A1B;
   --secondary-orange-color: #FB8012;
-  --white-bg-color: #FFF3E4;
+  --white-bg-color: #FFF2E4;
+}
+
+html {
+  min-height:100%
 }
 
 body {
@@ -20,34 +24,27 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-#container {
-  width: 550px;
-  /* height: 100%; */
-  margin: auto;
+  margin-bottom: 30px;
 }
 
 header {
-  padding: 10px 20px;
+  padding: 15px 30px;
+  /* box-shadow: 0 1px 10px rgb(129, 129, 129); */
 }
 
 header h1 {
-  font-size: 36px;
+  font-size: 30px;
   font-weight: bold;
   color: #FFF;
-  text-align: center;
 }
 
 #weather-info {
   display: flex;
   flex-direction: column; 
   background-color: var(--white-bg-color);
-  width: calc(100% - 100px);
-  padding: 20px 50px;
-  margin-top: 10px;
+  width: 100%;
+  padding: 20px 30px;
   position: relative;
-  box-shadow: 0 1px 10px rgb(129, 129, 129);
 }
 
 #weather-info > #close-weather-info {
@@ -66,7 +63,7 @@ header h1 {
 }
 
 #weather-info > #temperature {
-  font-size: 44px;
+  font-size: 40px;
   font-weight: bold;
   color: var(--secondary-text-color);
   margin: 20px 0;
@@ -104,15 +101,19 @@ header h1 {
   background-color: var(--primary-orange-color);
   height: 1px;
   margin: 15px 0;
+  width: 100vw;
   position: relative;
-  width: calc(100% + 50px);
-  right: 25px;
+  right: 30px;
 }
 
 #weather-info > #next-days {
   display: flex;
   flex-direction: row;
   column-gap: 20px;
+}
+
+#weather-info > #next-days > div:last-child {
+  display: none;
 }
 
 #weather-info > #next-days > div {
@@ -123,7 +124,7 @@ header h1 {
 
 #weather-info > #next-days > div > .day-name {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--main-text-color);
 }
 
@@ -138,16 +139,16 @@ header h1 {
 
 #search {
   display: flex;
-  width: calc(100% - 100px);
-  margin: 20px 0;
-  height: 50px;
+  width: calc(100% - 30px);
+  margin-top: 15px;
+  height: 40px;
   position: relative;
 }
 
 #search > #search-input {
   padding: 0 40px 0 20px;
   width: 100%;
-  background-color: var(--white-bg-color);
+  background-color: #FFF;
   font-size: 20px;
   font-weight: lighter;
   color: var(--main-text-color);
@@ -157,7 +158,7 @@ header h1 {
 #search > #search-icon {
   position: absolute;
   right: 10px;
-  top: 8px;
+  top: 4px;
   font-size: 24px;
   color: var(--main-text-color);
   cursor: pointer;
@@ -172,28 +173,22 @@ main > .line-separator {
 
 #capitals {
   width: 100%;
-  padding: 0 50px;
+  padding: 0 30px;
 }
 
 #capitals h3 {
   font-size: 36px;
   font-weight: bold;
-  color: var(--white-bg-color);
+  color: #FFF;
 }
-
-/* #capitals ul {
-  border: 1px solid red;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  height: 150px;
-} */
 
 #capitals table {
   display: flex;
   flex-direction: column;
-  flex-wrap: wrap;
-  height: 250px;
+}
+
+#capitals table #second-table-title {
+  display: none;
 }
 
 #capitals table th {
@@ -215,4 +210,68 @@ main > .line-separator {
 #capitals table th:last-child,
 #capitals table td:last-child  {
   padding-left: 10px;
+}
+
+@media only screen and (min-width: 900px) {
+  html, body {
+    min-height: 100%;
+  }
+
+  html > body {
+    background: linear-gradient(0deg, rgba(254,187,37,1) 50%, rgba(251,127,18,1) 100%);
+  }
+
+  #container {
+    width: 550px;
+    margin: auto;
+  }
+
+  #container header {
+    padding: 10px 50px;
+    box-shadow: none;
+  }
+
+  #container header h1 {
+    font-size: 36px;
+    text-align: center;
+  }
+
+  div#weather-info {
+    padding: 20px 50px;
+    margin-top: 10px;
+    width: calc(100% - 100px);
+    box-shadow: 0 1px 10px rgb(129, 129, 129);
+  }
+
+  div#weather-info .line-separator {
+    width: calc(100% + 50px);
+    right: 25px;
+  }
+
+  section#search {
+    width: calc(100% - 100px);
+    height: 50px;
+    margin: 20px 0;
+  }
+
+  div#weather-info > #next-days > div:last-child {
+    display: flex;
+  }
+
+  #search > button#search-icon {
+    top: 8px;
+  }
+
+  section#capitals {
+    padding: 0 50px;
+  }
+
+  section#capitals table {
+    flex-wrap: wrap;
+    height: 250px;
+  }
+
+  #capitals table tr#second-table-title {
+    display: block;
+  }
 }

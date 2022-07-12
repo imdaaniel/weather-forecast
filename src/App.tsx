@@ -1,9 +1,66 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { FontAwesomeIcon as Icon } from '@fortawesome/react-fontawesome';
-import { faArrowDown, faArrowUp, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
-import './App.css';
+import {
+  faArrowDown,
+  faArrowUp,
+  faXmark,
+  faMagnifyingGlass
+} from '@fortawesome/free-solid-svg-icons';
+import './assets/css/App.css';
 
 function App() {
+  const openWeatherAppId = '4d1b55062e29a4b921f97d8a9c484973';
+
+  const [showWeatherInfo, setShowWeatherInfo] = useState(true);
+  const [searchInputValue, setSearchInputValue]= useState('');
+
+  useEffect(() => {
+    if (searchInputValue.length < 3) {
+      return;
+    }
+
+    const delay = setTimeout(() => {
+      searchLocationSuggestions();
+    }, 500);
+
+    return () => clearTimeout(delay);
+  }, [searchInputValue]);
+
+  const searchLocationSuggestions = async () => {
+    const geocodingApiUrl = 'http://api.openweathermap.org/geo/1.0/direct';
+
+    interface Suggestion {
+      name: string;
+      lat: number;
+      lon: number;
+      country: string;
+      state?: string;
+    }
+
+    const locations:Suggestion[] = await axios
+    .get(`${geocodingApiUrl}?q=${searchInputValue}&appid=${openWeatherAppId}`
+      + '&limit=5')
+    .then(res => res.data);
+    
+
+    const suggestions = locations.map(location => ({
+      name: `${location.name}, ${location.state ? `${location.state}, ` : ''}`
+        + location.country,
+      lat: location.lat,
+      lon: location.lon,
+    })).filter((suggestion, index, self) => ( // Remove duplicates
+      index === self.findIndex(item => item.name === suggestion.name))
+    );
+
+    console.table(suggestions);
+  }
+
+
+  const handleSearch = () => {
+    setShowWeatherInfo(!showWeatherInfo);
+  }
+
   return (
     <div id='container'>
       <header>
@@ -11,8 +68,12 @@ function App() {
       </header>
 
       <main>
+        { showWeatherInfo && (
         <div id='weather-info'>
-          <button id='close-weather-info'>
+          <button
+            id='close-weather-info'
+            onClick={() => setShowWeatherInfo(!showWeatherInfo)}
+          >
             <i>
               <Icon icon={faXmark} />
             </i>
@@ -95,15 +156,21 @@ function App() {
             </div>
           </section>
         </div>
+        )}
 
         <section id='search'>
           <input
             id='search-input'
             type='text'
             placeholder='Insira aqui o nome da cidade'
+            value={searchInputValue}
+            onChange={(e) => setSearchInputValue(e.target.value)}
           />
           
-          <button id='search-icon'>
+          <button
+            id='search-icon'
+            onClick={() => handleSearch()}
+          >
             <i>
               <Icon icon={faMagnifyingGlass} />
             </i>
@@ -115,20 +182,6 @@ function App() {
 
         <section id='capitals'>
           <h3>Capitais</h3>
-
-          {/* <ul>
-            <li>Min</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-            <li>Sao Paulo</li>
-          </ul> */}
 
           <table>
             <tr>
