@@ -56,13 +56,14 @@ header h1 {
   cursor: pointer;
 }
 
-#weather-info > #city-name {
+#weather-info #city-name {
   color: var(--main-text-color);
   font-weight: bold;
   font-size: 16px;
+  width: 95%;
 }
 
-#weather-info > #temperature {
+#weather-info #temperature {
   font-size: 40px;
   font-weight: bold;
   color: var(--secondary-text-color);
@@ -70,12 +71,12 @@ header h1 {
   word-wrap: break-word;
 }
 
-#weather-info > #more-info {
+#weather-info #more-info {
   display: flex;
   column-gap: 30px;
 }
 
-#weather-info > #more-info > div {
+#weather-info #more-info > div {
   display: flex;
   flex-direction: column;
   row-gap: 15px;
@@ -101,34 +102,34 @@ header h1 {
   background-color: var(--primary-orange-color);
   height: 1px;
   margin: 15px 0;
-  width: 100vw;
+  width: calc(100% + 60px);
   position: relative;
   right: 30px;
 }
 
-#weather-info > #next-days {
+#weather-info #next-days {
   display: flex;
   flex-direction: row;
   column-gap: 20px;
 }
 
-#weather-info > #next-days > div:last-child {
+#weather-info #next-days > div:last-child {
   display: none;
 }
 
-#weather-info > #next-days > div {
+#weather-info #next-days > div {
   display: flex;
   flex-direction: column;
   row-gap: 5px;
 }
 
-#weather-info > #next-days > div > .day-name {
+#weather-info #next-days > div > .day-name {
   font-weight: bold;
   font-size: 18px;
   color: var(--main-text-color);
 }
 
-#weather-info > #next-days > div > .temperatures {
+#weather-info #next-days > div > .temperatures {
   display: flex;
   flex-direction: row;
   column-gap: 5px;
@@ -212,7 +213,7 @@ main > .line-separator {
   padding-left: 10px;
 }
 
-@media only screen and (min-width: 900px) {
+@media only screen and (min-width: 768px) {
   html, body {
     min-height: 100%;
   }
