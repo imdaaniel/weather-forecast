@@ -16,6 +16,35 @@ function App() {
   const [searchInputValue, setSearchInputValue]= useState('');
 
   useEffect(() => {
+    const searchLocationSuggestions = async () => {
+      const geocodingApiUrl = 'http://api.openweathermap.org/geo/1.0/direct';
+  
+      interface Suggestion {
+        name: string;
+        lat: number;
+        lon: number;
+        country: string;
+        state?: string;
+      }
+  
+      const locations:Suggestion[] = await axios
+      .get(`${geocodingApiUrl}?q=${searchInputValue}&appid=${openWeatherAppId}`
+        + '&limit=5')
+      .then(res => res.data);
+      
+  
+      const suggestions = locations.map(location => ({
+        name: `${location.name}, ${location.state ? `${location.state}, ` : ''}`
+          + location.country,
+        lat: location.lat,
+        lon: location.lon,
+      })).filter((suggestion, index, self) => ( // Remove duplicates
+        index === self.findIndex(item => item.name === suggestion.name))
+      );
+  
+      console.table(suggestions);
+    }
+
     if (searchInputValue.length < 3) {
       return;
     }
@@ -26,36 +55,6 @@ function App() {
 
     return () => clearTimeout(delay);
   }, [searchInputValue]);
-
-  const searchLocationSuggestions = async () => {
-    const geocodingApiUrl = 'http://api.openweathermap.org/geo/1.0/direct';
-
-    interface Suggestion {
-      name: string;
-      lat: number;
-      lon: number;
-      country: string;
-      state?: string;
-    }
-
-    const locations:Suggestion[] = await axios
-    .get(`${geocodingApiUrl}?q=${searchInputValue}&appid=${openWeatherAppId}`
-      + '&limit=5')
-    .then(res => res.data);
-    
-
-    const suggestions = locations.map(location => ({
-      name: `${location.name}, ${location.state ? `${location.state}, ` : ''}`
-        + location.country,
-      lat: location.lat,
-      lon: location.lon,
-    })).filter((suggestion, index, self) => ( // Remove duplicates
-      index === self.findIndex(item => item.name === suggestion.name))
-    );
-
-    console.table(suggestions);
-  }
-
 
   const handleSearch = () => {
     setShowWeatherInfo(!showWeatherInfo);
