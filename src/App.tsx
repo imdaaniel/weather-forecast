@@ -31,8 +31,8 @@ function App() {
       .get(`${geocodingApiUrl}?q=${searchInputValue}&appid=${openWeatherAppId}`
         + '&limit=5')
       .then(res => res.data);
+
       
-  
       const suggestions = locations.map(location => ({
         name: `${location.name}, ${location.state ? `${location.state}, ` : ''}`
           + location.country,
@@ -174,6 +174,12 @@ function App() {
               <Icon icon={faMagnifyingGlass} />
             </i>
           </button>
+
+          <ul id="suggestions">
+            <li>City 1</li>
+            <li>City 2</li>
+            <li>City 3</li>
+          </ul>
         </section>
         
 
