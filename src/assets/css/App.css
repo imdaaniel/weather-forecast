@@ -148,7 +148,8 @@ header h1 {
 }
 
 #search > #search-input {
-  padding: 0 40px 0 20px;
+  /* padding: 0 40px 0 20px; */
+  padding: 0 25px;
   width: 100%;
   background-color: #FFF;
   font-size: 20px;
@@ -158,6 +159,7 @@ header h1 {
 }
 
 #search > #search-icon {
+  display: none;
   position: absolute;
   right: 10px;
   top: 4px;

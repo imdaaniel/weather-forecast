@@ -9,17 +9,37 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import './assets/css/App.css';
 
+interface CitySuggestion {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+interface ICurrentWeatherData {
+  city_name: string;
+  temp: number;
+  current_weather: string;
+  min: number;
+  max: number;
+  wind_speed: number;
+  feels_like: number;
+  air_humidity: number;
+}
+
 function App() {
   const openWeatherAppId = '4d1b55062e29a4b921f97d8a9c484973';
+  const weatherApiUrl = 'https://api.openweathermap.org';
 
-  const [showWeatherInfo, setShowWeatherInfo] = useState(true);
+  const [showWeatherInfo, setShowWeatherInfo] = useState(false);
   const [searchInputValue, setSearchInputValue]= useState('');
+  const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [currentWeatherData, setCurrentWeatherData] = useState<ICurrentWeatherData>();
 
   useEffect(() => {
     const searchLocationSuggestions = async () => {
-      const geocodingApiUrl = 'http://api.openweathermap.org/geo/1.0/direct';
-  
-      interface Suggestion {
+      interface Location {
         name: string;
         lat: number;
         lon: number;
@@ -27,13 +47,12 @@ function App() {
         state?: string;
       }
   
-      const locations:Suggestion[] = await axios
-      .get(`${geocodingApiUrl}?q=${searchInputValue}&appid=${openWeatherAppId}`
+      const locations:Location[] = await axios
+      .get(`${weatherApiUrl}/geo/1.0/direct?q=${searchInputValue}&appid=${openWeatherAppId}`
         + '&limit=5')
       .then(res => res.data);
-
       
-      const suggestions = locations.map(location => ({
+      const suggestionsList:CitySuggestion[] = locations.map(location => ({
         name: `${location.name}, ${location.state ? `${location.state}, ` : ''}`
           + location.country,
         lat: location.lat,
@@ -41,23 +60,73 @@ function App() {
       })).filter((suggestion, index, self) => ( // Remove duplicates
         index === self.findIndex(item => item.name === suggestion.name))
       );
-  
-      console.table(suggestions);
+
+      setSuggestions(suggestionsList);
     }
 
     if (searchInputValue.length < 3) {
+      showSuggestions && setShowSuggestions(false);
       return;
     }
 
     const delay = setTimeout(() => {
-      searchLocationSuggestions();
-    }, 500);
+      searchLocationSuggestions().then(() => setShowSuggestions(true));
+    }, 250);
 
     return () => clearTimeout(delay);
   }, [searchInputValue]);
 
   const handleSearch = () => {
     setShowWeatherInfo(!showWeatherInfo);
+  }
+
+  const handleSuggestionClick = (city: CitySuggestion) => {
+    // Atual - /data/2.5/weather
+    // 5 dias (intervalo de 3 horas) - /data/2.5/forecast
+    console.log(city);
+    
+    const getCurrentWeather = async () => {
+      interface CurrentWeatherParams {
+        lat: number;
+        lon: number;
+        appid: string;
+        units?: 'standard' | 'metric' | 'imperial';
+        lang?: string;
+      };
+
+      const params:CurrentWeatherParams = {
+        lat: city.lat,
+        lon: city.lon,
+        units: 'metric',
+        lang: 'pt_br',
+        appid: openWeatherAppId,
+      };
+
+      const queryParams = new URLSearchParams(params as any).toString();
+
+      await axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
+      .then(res => res.data)
+      .then(data => setCurrentWeatherData({
+        city_name: city.name,
+        temp: data.main.temp,
+        current_weather: data.weather[0].description,
+        min: data.main.temp_min,
+        max: data.main.temp_max,
+        wind_speed: data.wind.speed,
+        feels_like: data.main.feels_like,
+        air_humidity: data.main.humidity,
+      }))
+      .then(() => setShowWeatherInfo(true));      
+    }
+
+    const getNextDaysForecast = async () => {
+      const forecastData = await axios
+      .get(`${weatherApiUrl}/data/2.5/forecast?q=${searchInputValue}&appid=${openWeatherAppId}`
+        + '&limit=5')
+      .then(res => res.data);
+    }
+
+    getCurrentWeather();
   }
 
   return (
@@ -78,9 +147,9 @@ function App() {
             </i>
           </button>
           
-          <span id='city-name'>Niterói, RJ - Brasil</span>
+          <span id='city-name'>{currentWeatherData?.city_name}</span>
 
-          <span id='temperature'>20º Nublado</span>
+          <span id='temperature'>{currentWeatherData?.temp}º {currentWeatherData?.current_weather}</span>
 
           <section id='more-info'>
             <div>
@@ -89,28 +158,28 @@ function App() {
                   <i>
                     <Icon icon={faArrowDown} />
                   </i>
-                  16º
+                  {currentWeatherData?.min}
                 </div>
                 <div id='max'>
                   <i>
                     <Icon icon={faArrowUp} />
                   </i>
-                  25º
+                  {currentWeatherData?.max}
                 </div>
               </div>
 
               <div id='wind-speed'>
-                <span className='light-text'>Vento: </span>18km/h
+                <span className='light-text'>Vento: </span>{currentWeatherData?.wind_speed}km/h
               </div>
             </div>
 
             <div>
               <div id='feels-like'>
-                <span className='light-text'>Sensação: </span>19º
+                <span className='light-text'>Sensação: </span>{currentWeatherData?.feels_like}º
               </div>
 
               <div id='air-humidity'>
-                <span className='light-text'>Umidade: </span>89%
+                <span className='light-text'>Umidade: </span>{currentWeatherData?.air_humidity}%
               </div>
             </div>
           </section>
@@ -175,13 +244,17 @@ function App() {
             </i>
           </button>
 
-          <ul id="suggestions">
-            <li>City 1</li>
-            <li>City 2</li>
-            <li>City 3</li>
-          </ul>
+          {showSuggestions && (
+            <ul id="suggestions">
+              {suggestions.map((city, index) => (
+                <li
+                  key={index}
+                  onClick={() => handleSuggestionClick(city)}
+                >{city.name}</li>
+              ))}
+            </ul>
+          )}
         </section>
-        
 
         <div className='line-separator' />
 
