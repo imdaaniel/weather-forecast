@@ -158,33 +158,12 @@ header h1 {
   border: 1px solid var(--secondary-orange-color);
 }
 
-#search > #search-icon {
-  display: none;
+#search > #search-input-clear-btn {
   position: absolute;
   right: 10px;
-  top: 4px;
-  font-size: 24px;
-  color: var(--main-text-color);
-  cursor: pointer;
-}
-
-#search > #suggestions {
-  width: 100%;
-  background-color: #FFF;
-  position: absolute;
-  top: 40px;
-}
-
-#search > #suggestions li {
-  padding: 10px;
-  border-width: 0 1px 1px;
-  border-style: solid;
-  border-color: #cccccc;
-}
-
-#search > #suggestions li:hover,
-#search > #suggestions li:active {
-  background-color: #d4d4d4;
+  top: 7px;
+  font-size: 20px;
+  color: #aaa;
   cursor: pointer;
 }
 
@@ -282,8 +261,8 @@ main > .line-separator {
     display: flex;
   }
 
-  #search > button#search-icon {
-    top: 8px;
+  #search > button#search-input-clear-btn {
+    top: 11px;
   }
 
   section#capitals {
@@ -297,9 +276,5 @@ main > .line-separator {
 
   #capitals table tr#second-table-title {
     display: block;
-  }
-
-  #search > ul#suggestions {
-    top: 50px;
   }
 }
