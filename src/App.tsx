@@ -1,19 +1,10 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon as Icon } from '@fortawesome/react-fontawesome';
-import {
-  faArrowDown,
-  faArrowUp,
-  faXmark,
-  faMagnifyingGlass
-} from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faXmark } from '@fortawesome/free-solid-svg-icons';
 import './assets/css/App.css';
-
-interface CitySuggestion {
-  name: string;
-  lat: number;
-  lon: number;
-}
+import SuggestionList from './components/SuggestionList/SuggestionList';
+import CitySuggestion from './interfaces/CitySuggestion';
 
 interface ICurrentWeatherData {
   city_name: string;
@@ -36,6 +27,7 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [currentWeatherData, setCurrentWeatherData] = useState<ICurrentWeatherData>();
+  const [tempUnit, setTempUnit] = useState('C');
 
   useEffect(() => {
     const searchLocationSuggestions = async () => {
@@ -76,10 +68,6 @@ function App() {
     return () => clearTimeout(delay);
   }, [searchInputValue]);
 
-  const handleSearch = () => {
-    setShowWeatherInfo(!showWeatherInfo);
-  }
-
   const handleSuggestionClick = (city: CitySuggestion) => {
     // Atual - /data/2.5/weather
     // 5 dias (intervalo de 3 horas) - /data/2.5/forecast
@@ -116,7 +104,9 @@ function App() {
         feels_like: data.main.feels_like,
         air_humidity: data.main.humidity,
       }))
-      .then(() => setShowWeatherInfo(true));      
+      .then(() => setShowWeatherInfo(true))
+      .then(() => setShowSuggestions(false))
+      .then(() => setSearchInputValue(''));
     }
 
     const getNextDaysForecast = async () => {
@@ -235,24 +225,22 @@ function App() {
             onChange={(e) => setSearchInputValue(e.target.value)}
           />
           
-          <button
-            id='search-icon'
-            onClick={() => handleSearch()}
-          >
-            <i>
-              <Icon icon={faMagnifyingGlass} />
-            </i>
-          </button>
+          { searchInputValue.length > 0 && (
+            <button
+              id='search-input-clear-btn'
+              onClick={() => setSearchInputValue('')}
+            >
+              <i>
+                <Icon icon={faXmark} />
+              </i>
+            </button>
+          )}
 
           {showSuggestions && (
-            <ul id="suggestions">
-              {suggestions.map((city, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleSuggestionClick(city)}
-                >{city.name}</li>
-              ))}
-            </ul>
+            <SuggestionList
+              data={suggestions}
+              onClick={(city: CitySuggestion) => handleSuggestionClick(city)}
+            />
           )}
         </section>
 
