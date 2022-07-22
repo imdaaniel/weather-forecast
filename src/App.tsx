@@ -224,11 +224,18 @@ function App() {
 
       let nextDaysData:NextDaysData[] = [];
       let currentIndex = 1;
+      const today = new Date().getDay();
 
       await axios.get(`${weatherApiUrl}/data/2.5/forecast?${queryParams}`)
       .then(res => res.data.list)
       .then((list:ForecastApiResponse[]) => list.forEach(timestamp => {
-        const dayName = getDayName(new Date(timestamp.dt * 1000).getDay());
+        const dayNumber = new Date(timestamp.dt * 1000).getDay();
+
+        if (dayNumber === today) {
+          return;
+        }
+
+        const dayName = getDayName(dayNumber);
 
         let currentDay = nextDaysData[currentIndex - 1];
         
