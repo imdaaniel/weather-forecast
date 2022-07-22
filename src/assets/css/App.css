@@ -71,6 +71,15 @@ header h1 {
   word-wrap: break-word;
 }
 
+#weather-info #current-weather-description {
+  font-weight: 500;
+  font-size: 30px;
+}
+
+#weather-info #current-weather-description::before {
+  content: ' ';
+}
+
 #weather-info #more-info {
   display: flex;
   column-gap: 30px;

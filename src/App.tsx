@@ -17,6 +17,20 @@ interface ICurrentWeatherData {
   air_humidity: number;
 }
 
+interface NextDaysData {
+  name: string;
+  min: number;
+  max: number;
+}
+
+interface WeatherApiParams {
+  lat: number;
+  lon: number;
+  appid: string;
+  units?: 'standard' | 'metric' | 'imperial';
+  lang?: string;
+};
+
 function App() {
   const openWeatherAppId = '4d1b55062e29a4b921f97d8a9c484973';
   const weatherApiUrl = 'https://api.openweathermap.org';
@@ -27,7 +41,93 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [currentWeatherData, setCurrentWeatherData] = useState<ICurrentWeatherData>();
+  const [nextDaysForecastData, setNextDaysForecastData] = useState<NextDaysData[]>([]);
+  const [capitalsWeatherData, setCapitalsWeatherData] = useState<NextDaysData[]>([]);
+  
   const [tempUnit, setTempUnit] = useState('C');
+
+  useEffect(() => {
+    const capitalsList = [
+      {
+        name: 'Rio de Janeiro',
+        lat: -22.9110137,
+        lon: -43.2093727
+      },
+      {
+        name: 'São Paulo',
+        lat: -23.5506507,
+        lon: -46.6333824
+      },
+      {
+        name: 'Belo Horizonte',
+        lat: -19.9227318,
+        lon: -43.9450948
+      },
+      {
+        name: 'Brasília',
+        lat: -15.7934036,
+        lon: -47.8823172
+      },
+      {
+        name: 'Belém',
+        lat: -1.45056,
+        lon: -48.4682453
+      },
+      {
+        name: 'Salvador',
+        lat: -12.9822499,
+        lon: -38.4812772
+      },
+      {
+        name: 'Curitiba',
+        lat: -25.4295963,
+        lon: -49.2712724
+      },
+      {
+        name: 'Fortaleza',
+        lat: -3.7304512,
+        lon: -38.5217989
+      },
+      {
+        name: 'Manaus',
+        lat: -3.1316333,
+        lon: -59.9825041
+      },
+      {
+        name: 'João Pessoa',
+        lat: -7.1215981,
+        lon: -34.882028
+      }
+    ];
+    
+    const cityPromises = [];
+
+    for (let i = 0; i < capitalsList.length; i++) {
+      const params:WeatherApiParams = {
+        lat: capitalsList[i].lat,
+        lon: capitalsList[i].lon,
+        units: 'metric',
+        lang: 'pt_br',
+        appid: openWeatherAppId,
+      };
+  
+      const queryParams = new URLSearchParams(params as any).toString();
+      
+      let cityDataPromise = axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
+      .then(res => res.data)
+      .then((data): NextDaysData => ({
+        name: data.name,
+        min: data.main.temp_min,
+        max: data.main.temp_max,
+      }));
+
+      cityPromises.push(cityDataPromise);
+    }
+
+    Promise.all(cityPromises).then(capitalsData => setCapitalsWeatherData(capitalsData));
+
+    return () => {};
+  }, []);
 
   useEffect(() => {
     const searchLocationSuggestions = async () => {
@@ -69,39 +169,29 @@ function App() {
   }, [searchInputValue]);
 
   const handleSuggestionClick = (city: CitySuggestion) => {
-    // Atual - /data/2.5/weather
-    // 5 dias (intervalo de 3 horas) - /data/2.5/forecast
     console.log(city);
+
+    const params:WeatherApiParams = {
+      lat: city.lat,
+      lon: city.lon,
+      units: 'metric',
+      lang: 'pt_br',
+      appid: openWeatherAppId,
+    };
+
+    const queryParams = new URLSearchParams(params as any).toString();
     
     const getCurrentWeather = async () => {
-      interface CurrentWeatherParams {
-        lat: number;
-        lon: number;
-        appid: string;
-        units?: 'standard' | 'metric' | 'imperial';
-        lang?: string;
-      };
-
-      const params:CurrentWeatherParams = {
-        lat: city.lat,
-        lon: city.lon,
-        units: 'metric',
-        lang: 'pt_br',
-        appid: openWeatherAppId,
-      };
-
-      const queryParams = new URLSearchParams(params as any).toString();
-
       await axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
       .then(res => res.data)
       .then(data => setCurrentWeatherData({
         city_name: city.name,
-        temp: data.main.temp,
+        temp: Math.trunc(data.main.temp),
         current_weather: data.weather[0].description,
-        min: data.main.temp_min,
-        max: data.main.temp_max,
-        wind_speed: data.wind.speed,
-        feels_like: data.main.feels_like,
+        min: Math.trunc(data.main.temp_min),
+        max: Math.trunc(data.main.temp_max),
+        wind_speed: Math.trunc(data.wind.speed),
+        feels_like: Math.trunc(data.main.feels_like),
         air_humidity: data.main.humidity,
       }))
       .then(() => setShowWeatherInfo(true))
@@ -110,13 +200,69 @@ function App() {
     }
 
     const getNextDaysForecast = async () => {
-      const forecastData = await axios
-      .get(`${weatherApiUrl}/data/2.5/forecast?q=${searchInputValue}&appid=${openWeatherAppId}`
-        + '&limit=5')
-      .then(res => res.data);
+      const getDayName = (index: number): string => {
+        const days = [
+          'Domingo',
+          'Segunda-feira',
+          'Terça-feira',
+          'Quarta-feira',
+          'Quinta-feira',
+          'Sexta-feira',
+          'Sábado',
+        ];
+
+        return days[index] || '';
+      };
+
+      interface ForecastApiResponse {
+        dt: number;
+        main: {
+          temp_min: number;
+          temp_max: number;
+        }
+      }
+
+      let nextDaysData:NextDaysData[] = [];
+      let currentIndex = 1;
+
+      await axios.get(`${weatherApiUrl}/data/2.5/forecast?${queryParams}`)
+      .then(res => res.data.list)
+      .then((list:ForecastApiResponse[]) => list.forEach(timestamp => {
+        const dayName = getDayName(new Date(timestamp.dt * 1000).getDay());
+
+        let currentDay = nextDaysData[currentIndex - 1];
+        
+        if (!currentDay) {
+          nextDaysData[currentIndex - 1] = {
+            name: dayName,
+            min: timestamp.main.temp_min,
+            max: timestamp.main.temp_max,
+          };
+        } else if (currentDay.name !== dayName) {
+          nextDaysData[currentIndex] = {
+            name: dayName,
+            min: timestamp.main.temp_min,
+            max: timestamp.main.temp_max,
+          };
+          currentIndex += 1;
+        } else if (timestamp.main.temp_min < currentDay.min) {
+          nextDaysData[currentIndex - 1] = {
+            ...currentDay,
+            min: timestamp.main.temp_min,
+          };
+        } else if (timestamp.main.temp_max > currentDay.max) {
+          nextDaysData[currentIndex - 1] = {
+            ...currentDay,
+            max: timestamp.main.temp_max,
+          };
+        }
+      }))
+      .then(() => setNextDaysForecastData(nextDaysData))
+      .then(() => setShowWeatherInfo(true));
     }
 
     getCurrentWeather();
+    getNextDaysForecast();
   }
 
   return (
@@ -139,80 +285,62 @@ function App() {
           
           <span id='city-name'>{currentWeatherData?.city_name}</span>
 
-          <span id='temperature'>{currentWeatherData?.temp}º {currentWeatherData?.current_weather}</span>
+          {currentWeatherData && ( <>
+            <span id='temperature'>{currentWeatherData?.temp}º
+              <span id="current-weather-description">
+                {currentWeatherData?.current_weather}
+              </span>
+            </span>
 
-          <section id='more-info'>
-            <div>
-              <div id='limit-temperatures'>
-                <div id='min'>
-                  <i>
-                    <Icon icon={faArrowDown} />
-                  </i>
-                  {currentWeatherData?.min}
+            <section id='more-info'>
+              <div>
+                <div id='limit-temperatures'>
+                  <div id='min'>
+                    <i>
+                      <Icon icon={faArrowDown} />
+                    </i>
+                    {currentWeatherData?.min}
+                  </div>
+                  <div id='max'>
+                    <i>
+                      <Icon icon={faArrowUp} />
+                    </i>
+                    {currentWeatherData?.max}
+                  </div>
                 </div>
-                <div id='max'>
-                  <i>
-                    <Icon icon={faArrowUp} />
-                  </i>
-                  {currentWeatherData?.max}
+
+                <div id='wind-speed'>
+                  <span className='light-text'>Vento: </span>{currentWeatherData?.wind_speed}km/h
                 </div>
               </div>
 
-              <div id='wind-speed'>
-                <span className='light-text'>Vento: </span>{currentWeatherData?.wind_speed}km/h
-              </div>
-            </div>
+              <div>
+                <div id='feels-like'>
+                  <span className='light-text'>Sensação: </span>{currentWeatherData?.feels_like}º
+                </div>
 
-            <div>
-              <div id='feels-like'>
-                <span className='light-text'>Sensação: </span>{currentWeatherData?.feels_like}º
+                <div id='air-humidity'>
+                  <span className='light-text'>Umidade: </span>{currentWeatherData?.air_humidity}%
+                </div>
               </div>
-
-              <div id='air-humidity'>
-                <span className='light-text'>Umidade: </span>{currentWeatherData?.air_humidity}%
-              </div>
-            </div>
-          </section>
+            </section>
+          </> )}
 
           <div className='line-separator' />
 
-          <section id='next-days'>
-            <div>
-              <span className='day-name'>Ter</span>
-              <div className='temperatures'>
-                <span className='min'>18º</span>
-                <span className='max'>25º</span>
-              </div>
-            </div>
-            <div>
-              <span className='day-name'>Qua</span>
-              <div className='temperatures'>
-                <span className='min'>18º</span>
-                <span className='max'>25º</span>
-              </div>
-            </div>
-            <div>
-              <span className='day-name'>Qui</span>
-              <div className='temperatures'>
-                <span className='min'>18º</span>
-                <span className='max'>25º</span>
-              </div>
-            </div>
-            <div>
-              <span className='day-name'>Sex</span>
-              <div className='temperatures'>
-                <span className='min'>18º</span>
-                <span className='max'>25º</span>
-              </div>
-            </div>
-            <div>
-              <span className='day-name'>Sáb</span>
-              <div className='temperatures'>
-                <span className='min'>18º</span>
-                <span className='max'>25º</span>
-              </div>
-            </div>
-          </section>
+          {nextDaysForecastData && (
+            <section id='next-days'>
+              {nextDaysForecastData.map((day, index) => (
+                <div key={index}>
+                  <span className='day-name'>{day.name.slice(0, 3)}</span>
+                  <div className='temperatures'>
+                    <span className='min'>{Math.trunc(day.min)}º</span>
+                    <span className='max'>{Math.trunc(day.max)}º</span>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
         </div>
         )}
 
@@ -255,72 +383,26 @@ function App() {
               <th scope='col'>Max</th>
               <th scope='col'></th>
             </tr>
-
-            <tr>
-              <td>18º</td>
-              <td>27º</td>
-              <td>Rio de Janeiro</td>
-            </tr>
-
-            <tr>
-              <td>14º</td>
-              <td>22º</td>
-              <td>São Paulo</td>
-            </tr>
-
-            <tr>
-              <td>21º</td>
-              <td>32º</td>
-              <td>Belo Horizonte</td>
-            </tr>
-
-            <tr>
-              <td>24º</td>
-              <td>37º</td>
-              <td>Brasília</td>
-            </tr>
-
-            <tr>
-              <td>24º</td>
-              <td>37º</td>
-              <td>Belém</td>
-            </tr>
-
-            <tr id='second-table-title'>
-              <th scope='col'>Min</th>
-              <th scope='col'>Max</th>
-              <th scope='col'></th>
-            </tr>
-
-            <tr>
-              <td>23º</td>
-              <td>37º</td>
-              <td>Salvador</td>
-            </tr>
-
-            <tr>
-              <td>5º</td>
-              <td>14º</td>
-              <td>Curitiba</td>
-            </tr>
-
-            <tr>
-              <td>21º</td>
-              <td>32º</td>
-              <td>Fortaleza</td>
-            </tr>
-
-            <tr>
-              <td>24º</td>
-              <td>37º</td>
-              <td>Manaus</td>
-            </tr>
-
-            <tr>
-              <td>28º</td>
-              <td>40º</td>
-              <td>João Pessoa</td>
-            </tr>
+            {capitalsWeatherData && capitalsWeatherData.map((capital, index) => {
+              return index === 5 ? ( <>
+                <tr id='second-table-title' key='second-table-title'>
+                  <th scope='col'>Min</th>
+                  <th scope='col'>Max</th>
+                  <th scope='col'></th>
+                </tr>
+                <tr key={index}>
+                  <td>{Math.trunc(capital.min)}º</td>
+                  <td>{Math.trunc(capital.max)}º</td>
+                  <td>{capital.name}</td>
+                </tr>
+              </> ) : (
+                <tr key={index}>
+                  <td>{Math.trunc(capital.min)}º</td>
+                  <td>{Math.trunc(capital.max)}º</td>
+                  <td>{capital.name}</td>
+                </tr>
+              );
+            })}
           </table>
         </section>
       </main>
