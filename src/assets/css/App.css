@@ -203,6 +203,10 @@ main > .line-separator {
   display: none;
 }
 
+#capitals table tr > td {
+  cursor: pointer;
+}
+
 #capitals table th {
   font-weight: lighter;
   font-size: 14px;

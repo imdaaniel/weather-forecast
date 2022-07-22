@@ -23,6 +23,14 @@ interface NextDaysData {
   max: number;
 }
 
+interface CapitalData {
+  name: string;
+  lat: number;
+  lon: number;
+  min: number;
+  max: number;
+}
+
 interface WeatherApiParams {
   lat: number;
   lon: number;
@@ -42,61 +50,61 @@ function App() {
 
   const [currentWeatherData, setCurrentWeatherData] = useState<ICurrentWeatherData>();
   const [nextDaysForecastData, setNextDaysForecastData] = useState<NextDaysData[]>([]);
-  const [capitalsWeatherData, setCapitalsWeatherData] = useState<NextDaysData[]>([]);
+  const [capitalsWeatherData, setCapitalsWeatherData] = useState<CapitalData[]>([]);
   
   const [tempUnit, setTempUnit] = useState('C');
 
   useEffect(() => {
-    const capitalsList = [
+    const capitalsList:CitySuggestion[] = [
       {
-        name: 'Rio de Janeiro',
-        lat: -22.9110137,
-        lon: -43.2093727
+        name: 'London, England, GB',
+        lat: 51.5073219,
+        lon: -0.1276474,
       },
       {
-        name: 'São Paulo',
+        name: 'Paris, Ile-de-France, FR',
+        lat: 48.8588897,
+        lon: 2.3200410217200766,
+      },
+      {
+        name: 'Madrid, Community of Madrid, ES',
+        lat: 40.4167047,
+        lon: -3.7035825,
+      },
+      {
+        name: 'Tokyo, JP',
+        lat: 35.6828387,
+        lon: 139.7594549,
+      },
+      {
+        name: 'Beijing, Beijing, CN',
+        lat: 39.906217,
+        lon: 116.3912757,
+      },
+      {
+        name: 'Sao Paulo, Sao Paulo, BR',
         lat: -23.5506507,
-        lon: -46.6333824
+        lon: -46.6333824,
       },
       {
-        name: 'Belo Horizonte',
-        lat: -19.9227318,
-        lon: -43.9450948
+        name: 'Berlin, Berlin, DE',
+        lat: 52.5170365,
+        lon: 13.3888599,
       },
       {
-        name: 'Brasília',
-        lat: -15.7934036,
-        lon: -47.8823172
+        name: 'Amsterdam, North Holland, NL',
+        lat: 52.3727598,
+        lon: 4.8936041,
       },
       {
-        name: 'Belém',
-        lat: -1.45056,
-        lon: -48.4682453
+        name: 'Washington, District of Columbia, US',
+        lat: 38.8950368,
+        lon: -77.0365427,
       },
       {
-        name: 'Salvador',
-        lat: -12.9822499,
-        lon: -38.4812772
-      },
-      {
-        name: 'Curitiba',
-        lat: -25.4295963,
-        lon: -49.2712724
-      },
-      {
-        name: 'Fortaleza',
-        lat: -3.7304512,
-        lon: -38.5217989
-      },
-      {
-        name: 'Manaus',
-        lat: -3.1316333,
-        lon: -59.9825041
-      },
-      {
-        name: 'João Pessoa',
-        lat: -7.1215981,
-        lon: -34.882028
+        name: 'Abu Dhabi, Abu Dhabi Emirate, AE',
+        lat: 24.4538352,
+        lon: 54.3774014,
       }
     ];
     
@@ -115,8 +123,8 @@ function App() {
       
       let cityDataPromise = axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
       .then(res => res.data)
-      .then((data): NextDaysData => ({
-        name: data.name,
+      .then((data) => ({
+        ...capitalsList[i],
         min: data.main.temp_min,
         max: data.main.temp_max,
       }));
@@ -168,7 +176,7 @@ function App() {
     return () => clearTimeout(delay);
   }, [searchInputValue]);
 
-  const handleSuggestionClick = (city: CitySuggestion) => {
+  const handleSuggestionClick = (city: CitySuggestion | CapitalData) => {
     console.log(city);
 
     const params:WeatherApiParams = {
@@ -391,24 +399,22 @@ function App() {
               <th scope='col'></th>
             </tr>
             {capitalsWeatherData && capitalsWeatherData.map((capital, index) => {
+              const lineContent = (
+                <tr key={index} onClick={() => handleSuggestionClick(capital)}>
+                  <td>{Math.trunc(capital.min)}º</td>
+                  <td>{Math.trunc(capital.max)}º</td>
+                  <td>{capital.name.substring(0, capital.name.indexOf(','))}</td>
+                </tr>
+              );
+              
               return index === 5 ? ( <>
                 <tr id='second-table-title' key='second-table-title'>
                   <th scope='col'>Min</th>
                   <th scope='col'>Max</th>
                   <th scope='col'></th>
                 </tr>
-                <tr key={index}>
-                  <td>{Math.trunc(capital.min)}º</td>
-                  <td>{Math.trunc(capital.max)}º</td>
-                  <td>{capital.name}</td>
-                </tr>
-              </> ) : (
-                <tr key={index}>
-                  <td>{Math.trunc(capital.min)}º</td>
-                  <td>{Math.trunc(capital.max)}º</td>
-                  <td>{capital.name}</td>
-                </tr>
-              );
+                {lineContent}
+              </> ) : lineContent;
             })}
           </table>
         </section>
