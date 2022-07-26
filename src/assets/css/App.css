@@ -149,7 +149,6 @@ header h1 {
 
 #search {
   display: flex;
-  /* flex-direction: column; */
   width: calc(100% - 30px);
   margin-top: 15px;
   height: 40px;
@@ -210,6 +209,7 @@ main > .line-separator {
 #capitals table th {
   font-weight: lighter;
   font-size: 14px;
+  width: 45px;
 }
 
 #capitals table td {
