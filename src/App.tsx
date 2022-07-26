@@ -5,6 +5,7 @@ import { faArrowDown, faArrowUp, faXmark } from '@fortawesome/free-solid-svg-ico
 import './assets/css/App.css';
 import SuggestionList from './components/SuggestionList/SuggestionList';
 import CitySuggestion from './interfaces/CitySuggestion';
+import RadioSelector from './components/RadioSelector/RadioSelector';
 
 interface ICurrentWeatherData {
   city_name: string;
@@ -19,6 +20,7 @@ interface ICurrentWeatherData {
 
 interface NextDaysData {
   name: string;
+  index: number;
   min: number;
   max: number;
 }
@@ -35,8 +37,26 @@ interface WeatherApiParams {
   lat: number;
   lon: number;
   appid: string;
-  units?: 'standard' | 'metric' | 'imperial';
-  lang?: string;
+  units: 'imperial' | 'metric';
+  lang: 'en' | 'pt_br';
+};
+
+interface CountrySettings {
+  [key: string]: {
+    label: {
+      title: string;
+      capitals: string;
+      placeholder: string;
+      wind: string;
+      feelsLike: string;
+      humidity: string;
+      days: string[];
+    };
+    temperature: string;
+    speed: string;
+    unitSystem: WeatherApiParams['units'];
+    lang: WeatherApiParams['lang'];
+  };
 };
 
 function App() {
@@ -51,8 +71,58 @@ function App() {
   const [currentWeatherData, setCurrentWeatherData] = useState<ICurrentWeatherData>();
   const [nextDaysForecastData, setNextDaysForecastData] = useState<NextDaysData[]>([]);
   const [capitalsWeatherData, setCapitalsWeatherData] = useState<CapitalData[]>([]);
-  
-  const [tempUnit, setTempUnit] = useState('C');
+
+  const [currentCountry, setCurrentCountry] = useState('US');
+  const [lastRequestedCountry, setLastRequestedCountry] = useState('US');
+
+  const countrySettings:CountrySettings = {
+    BR: {
+      temperature: 'C',
+      speed: 'km/h',
+      unitSystem: 'metric',
+      lang: 'pt_br',
+      label: {
+        title: 'Previsão do tempo',
+        capitals: 'Capitais',
+        placeholder: 'Digite o nome da cidade',
+        wind: 'Vento',
+        feelsLike: 'Sensação',
+        humidity: 'Umidade',
+        days: [
+          'Domingo',
+          'Segunda-feira',
+          'Terça-feira',
+          'Quarta-feira',
+          'Quinta-feira',
+          'Sexta-feira',
+          'Sábado',
+        ],
+      }
+    },
+    US: {
+      temperature: 'F',
+      speed: 'mph',
+      unitSystem: 'imperial',
+      lang: 'en',
+      label: {
+        title: 'Weather forecast',
+        capitals: 'Capitals',
+        placeholder: 'Enter the city name',
+        wind: 'Wind',
+        feelsLike: 'Feels Like',
+        humidity: 'Humidity',
+        days: [
+          'Sunday',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+        ],
+      }
+    },
+  }
 
   useEffect(() => {
     const capitalsList:CitySuggestion[] = [
@@ -114,8 +184,8 @@ function App() {
       const params:WeatherApiParams = {
         lat: capitalsList[i].lat,
         lon: capitalsList[i].lon,
-        units: 'metric',
-        lang: 'pt_br',
+        units: countrySettings[currentCountry].unitSystem,
+        lang: countrySettings[currentCountry].lang,
         appid: openWeatherAppId,
       };
   
@@ -132,7 +202,9 @@ function App() {
       cityPromises.push(cityDataPromise);
     }
 
-    Promise.all(cityPromises).then(capitalsData => setCapitalsWeatherData(capitalsData));
+    Promise.all(cityPromises)
+    .then(capitalsData => setCapitalsWeatherData(capitalsData))
+    .then(() => setLastRequestedCountry(currentCountry));
 
     return () => {};
   }, []);
@@ -176,14 +248,47 @@ function App() {
     return () => clearTimeout(delay);
   }, [searchInputValue]);
 
+  const displayFahrenheit = (temp: number, showUnit = true): string => {
+    // F to C
+    temp = currentCountry === 'BR' ? (temp - 32) * (5/9) : temp;
+    temp = Math.trunc(temp);
+
+    return showUnit ? `${temp}º${countrySettings[currentCountry].temperature}` : `${temp}`;
+  }
+
+  const displayTemperature = (temp: number, showUnit = true): string => {
+    if (lastRequestedCountry === 'US' && currentCountry === 'BR') {
+      // F to C
+      return displayFahrenheit(temp, showUnit);
+    } else if (lastRequestedCountry === 'BR' && currentCountry === 'US') {
+      // C to F
+      temp = temp * (9/5) + 32;
+    }
+    temp = Math.trunc(temp);
+
+    return showUnit ? `${temp}º${countrySettings[currentCountry].temperature}` : `${temp}`;
+  }
+
+  const displaySpeed = (speed: number): string => {
+    if (lastRequestedCountry === 'US' && currentCountry === 'BR') {
+      // Mph to Km/h
+      speed *= 1.609344;
+    } else if (lastRequestedCountry === 'BR' && currentCountry === 'US') {
+      // Km/h to Mph
+      speed /= 1.609344;
+    }
+
+    return `${Math.trunc(speed)}${countrySettings[currentCountry].speed}`;
+  }
+
   const handleSuggestionClick = (city: CitySuggestion | CapitalData) => {
     console.log(city);
 
     const params:WeatherApiParams = {
       lat: city.lat,
       lon: city.lon,
-      units: 'metric',
-      lang: 'pt_br',
+      units: countrySettings[currentCountry].unitSystem,
+      lang: countrySettings[currentCountry].lang,
       appid: openWeatherAppId,
     };
 
@@ -202,25 +307,14 @@ function App() {
         feels_like: Math.trunc(data.main.feels_like),
         air_humidity: data.main.humidity,
       }))
+      .then(() => setLastRequestedCountry(currentCountry))
       .then(() => setShowWeatherInfo(true))
       .then(() => setShowSuggestions(false))
       .then(() => setSearchInputValue(''));
     }
 
     const getNextDaysForecast = async () => {
-      const getDayName = (index: number): string => {
-        const days = [
-          'Domingo',
-          'Segunda-feira',
-          'Terça-feira',
-          'Quarta-feira',
-          'Quinta-feira',
-          'Sexta-feira',
-          'Sábado',
-        ];
-
-        return days[index] || '';
-      };
+      const getDayName = (index: number): string => countrySettings[currentCountry].label.days[index] || '';
 
       interface ForecastApiResponse {
         dt: number;
@@ -250,12 +344,14 @@ function App() {
         if (!currentDay) {
           nextDaysData[currentIndex - 1] = {
             name: dayName,
+            index: dayNumber,
             min: timestamp.main.temp_min,
             max: timestamp.main.temp_max,
           };
         } else if (currentDay.name !== dayName) {
           nextDaysData[currentIndex] = {
             name: dayName,
+            index: dayNumber,
             min: timestamp.main.temp_min,
             max: timestamp.main.temp_max,
           };
@@ -273,6 +369,7 @@ function App() {
         }
       }))
       .then(() => setNextDaysForecastData(nextDaysData))
+      .then(() => setLastRequestedCountry(currentCountry))
       .then(() => setShowWeatherInfo(true));
     }
 
@@ -283,10 +380,26 @@ function App() {
   return (
     <div id='container'>
       <header>
-        <h1>Previsão do tempo 🌤️</h1>
+        <h1>{countrySettings[currentCountry].label.title} 🌤️</h1>
       </header>
 
       <main>
+        <RadioSelector
+          name='country'
+          options={[
+            {
+              text: 'BR',
+              value: 'BR',
+            },
+            {
+              text: 'US',
+              value: 'US',
+            }
+          ]}
+          selected={currentCountry}
+          onChange={(country: string) => setCurrentCountry(country)}
+        />
+
         { showWeatherInfo && (
         <div id='weather-info'>
           <button
@@ -301,7 +414,7 @@ function App() {
           <span id='city-name'>{currentWeatherData?.city_name}</span>
 
           {currentWeatherData && ( <>
-            <span id='temperature'>{currentWeatherData?.temp}º
+            <span id='temperature'>{displayTemperature(currentWeatherData.temp)}
               <span id="current-weather-description">
                 {currentWeatherData?.current_weather}
               </span>
@@ -314,28 +427,28 @@ function App() {
                     <i>
                       <Icon icon={faArrowDown} />
                     </i>
-                    {currentWeatherData?.min}
+                    {displayTemperature(currentWeatherData.min, false)}
                   </div>
                   <div id='max'>
                     <i>
                       <Icon icon={faArrowUp} />
                     </i>
-                    {currentWeatherData?.max}
+                    {displayTemperature(currentWeatherData.max, false)}
                   </div>
                 </div>
 
                 <div id='wind-speed'>
-                  <span className='light-text'>Vento: </span>{currentWeatherData?.wind_speed}km/h
+                  <span className='light-text'>{countrySettings[currentCountry].label.wind}: </span>{displaySpeed(currentWeatherData.wind_speed)}
                 </div>
               </div>
 
               <div>
                 <div id='feels-like'>
-                  <span className='light-text'>Sensação: </span>{currentWeatherData?.feels_like}º
+                  <span className='light-text'>{countrySettings[currentCountry].label.feelsLike}: </span>{displayTemperature(currentWeatherData.feels_like)}
                 </div>
 
                 <div id='air-humidity'>
-                  <span className='light-text'>Umidade: </span>{currentWeatherData?.air_humidity}%
+                  <span className='light-text'>{countrySettings[currentCountry].label.humidity}: </span>{currentWeatherData.air_humidity}%
                 </div>
               </div>
             </section>
@@ -347,10 +460,10 @@ function App() {
             <section id='next-days'>
               {nextDaysForecastData.map((day, index) => (
                 <div key={index}>
-                  <span className='day-name'>{day.name.slice(0, 3)}</span>
+                  <span className='day-name'>{countrySettings[currentCountry].label.days[day.index].slice(0, 3)}</span>
                   <div className='temperatures'>
-                    <span className='min'>{Math.trunc(day.min)}º</span>
-                    <span className='max'>{Math.trunc(day.max)}º</span>
+                    <span className='min'>{displayTemperature(day.min, false)}º</span>
+                    <span className='max'>{displayTemperature(day.max, false)}º</span>
                   </div>
                 </div>
               ))}
@@ -363,7 +476,7 @@ function App() {
           <input
             id='search-input'
             type='text'
-            placeholder='Insira aqui o nome da cidade'
+            placeholder={countrySettings[currentCountry].label.placeholder}
             value={searchInputValue}
             onChange={(e) => setSearchInputValue(e.target.value)}
           />
@@ -390,7 +503,7 @@ function App() {
         <div className='line-separator' />
 
         <section id='capitals'>
-          <h3>Capitais</h3>
+          <h3>{countrySettings[currentCountry].label.capitals}</h3>
 
           <table>
             <tr>
@@ -401,8 +514,8 @@ function App() {
             {capitalsWeatherData && capitalsWeatherData.map((capital, index) => {
               const lineContent = (
                 <tr key={index} onClick={() => handleSuggestionClick(capital)}>
-                  <td>{Math.trunc(capital.min)}º</td>
-                  <td>{Math.trunc(capital.max)}º</td>
+                  <td>{displayFahrenheit(capital.min)}</td>
+                  <td>{displayFahrenheit(capital.max)}</td>
                   <td>{capital.name.substring(0, capital.name.indexOf(','))}</td>
                 </tr>
               );
