@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon as Icon } from '@fortawesome/react-fontawesome';
 import { faArrowDown, faArrowUp, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -6,9 +6,9 @@ import './assets/css/App.css';
 import SuggestionList from './components/SuggestionList/SuggestionList';
 import CitySuggestion from './interfaces/CitySuggestion';
 import RadioSelector from './components/RadioSelector/RadioSelector';
+import Loading from './components/Loading/Loading';
 
 interface ICurrentWeatherData {
-  city_name: string;
   temp: number;
   current_weather: string;
   min: number;
@@ -39,7 +39,7 @@ interface WeatherApiParams {
   appid: string;
   units: 'imperial' | 'metric';
   lang: 'en' | 'pt_br';
-};
+}
 
 interface CountrySettings {
   [key: string]: {
@@ -57,23 +57,36 @@ interface CountrySettings {
     unitSystem: WeatherApiParams['units'];
     lang: WeatherApiParams['lang'];
   };
-};
+}
+
+interface ForecastApiResponse {
+  dt: number;
+  main: {
+    temp_min: number;
+    temp_max: number;
+  }
+}
 
 function App() {
   const openWeatherAppId = '4d1b55062e29a4b921f97d8a9c484973';
   const weatherApiUrl = 'https://api.openweathermap.org';
 
-  const [showWeatherInfo, setShowWeatherInfo] = useState(false);
   const [searchInputValue, setSearchInputValue]= useState('');
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const [currentWeatherData, setCurrentWeatherData] = useState<ICurrentWeatherData>();
+  const [showCityWeatherData, setShowCityWeatherData] = useState(false);
+  
+  const [currentCity, setCurrentCity] = useState<CitySuggestion | null>(null);
+  const [currentCityWeather, setCurrentCityWeather] = useState<ICurrentWeatherData | null>(null); 
+  const [currentWeatherIsLoading, setCurrentWeatherIsLoading] = useState(false);
+
   const [nextDaysForecastData, setNextDaysForecastData] = useState<NextDaysData[]>([]);
-  const [capitalsWeatherData, setCapitalsWeatherData] = useState<CapitalData[]>([]);
+  const [nextDaysForecastIsLoading, setNextDaysForecastIsLoading] = useState(false);
 
+  const [capitalsWeatherData, setCapitalsWeatherData] = useState<CapitalData[]>([]);
+  
   const [currentCountry, setCurrentCountry] = useState('US');
-  const [lastRequestedCountry, setLastRequestedCountry] = useState('US');
+  const lastRequestedCountry = useRef('');
 
   const countrySettings:CountrySettings = {
     BR: {
@@ -181,15 +194,7 @@ function App() {
     const cityPromises = [];
 
     for (let i = 0; i < capitalsList.length; i++) {
-      const params:WeatherApiParams = {
-        lat: capitalsList[i].lat,
-        lon: capitalsList[i].lon,
-        units: countrySettings[currentCountry].unitSystem,
-        lang: countrySettings[currentCountry].lang,
-        appid: openWeatherAppId,
-      };
-  
-      const queryParams = new URLSearchParams(params as any).toString();
+      const queryParams = prepareQueryParams(capitalsList[i], true);
       
       let cityDataPromise = axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
       .then(res => res.data)
@@ -204,7 +209,7 @@ function App() {
 
     Promise.all(cityPromises)
     .then(capitalsData => setCapitalsWeatherData(capitalsData))
-    .then(() => setLastRequestedCountry(currentCountry));
+    .then(() => updateLastRequestedCountry());
 
     return () => {};
   }, []);
@@ -237,18 +242,24 @@ function App() {
     }
 
     if (searchInputValue.length < 3) {
-      showSuggestions && setShowSuggestions(false);
+      setSuggestions([]);
       return;
     }
 
-    const delay = setTimeout(() => {
-      searchLocationSuggestions().then(() => setShowSuggestions(true));
+    const searchDelay = setTimeout(() => {
+      searchLocationSuggestions();
     }, 250);
 
-    return () => clearTimeout(delay);
+    return () => clearTimeout(searchDelay);
   }, [searchInputValue]);
 
-  const displayFahrenheit = (temp: number, showUnit = true): string => {
+  useEffect(() => {
+    if (currentCity) {
+      getCurrentWeather(currentCity);
+    }
+  }, [currentCountry]);
+
+  const displayFahrenheitTemp = (temp: number, showUnit = true): string => {
     // F to C
     temp = currentCountry === 'BR' ? (temp - 32) * (5/9) : temp;
     temp = Math.trunc(temp);
@@ -256,24 +267,28 @@ function App() {
     return showUnit ? `${temp}º${countrySettings[currentCountry].temperature}` : `${temp}`;
   }
 
-  const displayTemperature = (temp: number, showUnit = true): string => {
-    if (lastRequestedCountry === 'US' && currentCountry === 'BR') {
+  const displayTemperature = (temp: number | undefined, showUnit = true): string => {
+    if (!temp) return '';
+
+    if (lastRequestedCountry.current === 'US' && currentCountry === 'BR') {
       // F to C
-      return displayFahrenheit(temp, showUnit);
-    } else if (lastRequestedCountry === 'BR' && currentCountry === 'US') {
+      return displayFahrenheitTemp(temp, showUnit);
+    } else if (lastRequestedCountry.current === 'BR' && currentCountry === 'US') {
       // C to F
       temp = temp * (9/5) + 32;
     }
     temp = Math.trunc(temp);
 
-    return showUnit ? `${temp}º${countrySettings[currentCountry].temperature}` : `${temp}`;
+    return showUnit ? `${temp}º${countrySettings[currentCountry].temperature}` : temp.toString();
   }
 
-  const displaySpeed = (speed: number): string => {
-    if (lastRequestedCountry === 'US' && currentCountry === 'BR') {
+  const displaySpeed = (speed: number | undefined): string => {
+    if (!speed) return '';
+
+    if (lastRequestedCountry.current === 'US' && currentCountry === 'BR') {
       // Mph to Km/h
       speed *= 1.609344;
-    } else if (lastRequestedCountry === 'BR' && currentCountry === 'US') {
+    } else if (lastRequestedCountry.current === 'BR' && currentCountry === 'US') {
       // Km/h to Mph
       speed /= 1.609344;
     }
@@ -281,100 +296,104 @@ function App() {
     return `${Math.trunc(speed)}${countrySettings[currentCountry].speed}`;
   }
 
-  const handleSuggestionClick = (city: CitySuggestion | CapitalData) => {
-    console.log(city);
-
+  const prepareQueryParams = (city: CitySuggestion, fixedUnit = false): string => {
     const params:WeatherApiParams = {
       lat: city.lat,
       lon: city.lon,
-      units: countrySettings[currentCountry].unitSystem,
+      units: fixedUnit ? 'imperial' : countrySettings[currentCountry].unitSystem,
       lang: countrySettings[currentCountry].lang,
       appid: openWeatherAppId,
     };
 
-    const queryParams = new URLSearchParams(params as any).toString();
-    
-    const getCurrentWeather = async () => {
-      await axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
-      .then(res => res.data)
-      .then(data => setCurrentWeatherData({
-        city_name: city.name,
-        temp: Math.trunc(data.main.temp),
-        current_weather: data.weather[0].description,
-        min: Math.trunc(data.main.temp_min),
-        max: Math.trunc(data.main.temp_max),
-        wind_speed: Math.trunc(data.wind.speed),
-        feels_like: Math.trunc(data.main.feels_like),
-        air_humidity: data.main.humidity,
-      }))
-      .then(() => setLastRequestedCountry(currentCountry))
-      .then(() => setShowWeatherInfo(true))
-      .then(() => setShowSuggestions(false))
-      .then(() => setSearchInputValue(''));
+    return new URLSearchParams(params as any).toString();
+  }
+
+  const updateLastRequestedCountry = () => {
+    if (lastRequestedCountry.current !== currentCountry) {
+      lastRequestedCountry.current = currentCountry;
     }
+  }
 
-    const getNextDaysForecast = async () => {
-      const getDayName = (index: number): string => countrySettings[currentCountry].label.days[index] || '';
+  const getCurrentWeather = async (city: CitySuggestion) => {
+    setCurrentWeatherIsLoading(true);
+    const queryParams = prepareQueryParams(city);
+    
+    await axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
+    .then(res => res.data)
+    .then(data => setCurrentCityWeather({
+      temp: Math.trunc(data.main.temp),
+      current_weather: data.weather[0].description,
+      min: Math.trunc(data.main.temp_min),
+      max: Math.trunc(data.main.temp_max),
+      wind_speed: Math.trunc(data.wind.speed),
+      feels_like: Math.trunc(data.main.feels_like),
+      air_humidity: data.main.humidity,
+    }))
+    .then(() => setCurrentWeatherIsLoading(false))
+    .then(() => updateLastRequestedCountry())
+    .then(() => setSearchInputValue(''));
+  }
 
-      interface ForecastApiResponse {
-        dt: number;
-        main: {
-          temp_min: number;
-          temp_max: number;
-        }
+  const getNextDaysForecast = async (city: CitySuggestion) => {
+    setNextDaysForecastIsLoading(true);
+    const queryParams = prepareQueryParams(city, true);
+
+    let nextDaysData:NextDaysData[] = [];
+    let currentIndex = 1;
+    const today = new Date().getUTCDay();
+
+    await axios.get(`${weatherApiUrl}/data/2.5/forecast?${queryParams}`)
+    .then(res => res.data.list)
+    .then((list:ForecastApiResponse[]) => list.forEach(timestamp => {
+      const dayNumber = new Date(timestamp.dt * 1000).getUTCDay();
+
+      if (dayNumber === today) {
+        return;
       }
 
-      let nextDaysData:NextDaysData[] = [];
-      let currentIndex = 1;
-      const today = new Date().getDay();
+      const dayName = countrySettings[currentCountry].label.days[dayNumber];
 
-      await axios.get(`${weatherApiUrl}/data/2.5/forecast?${queryParams}`)
-      .then(res => res.data.list)
-      .then((list:ForecastApiResponse[]) => list.forEach(timestamp => {
-        const dayNumber = new Date(timestamp.dt * 1000).getDay();
+      let currentDay = nextDaysData[currentIndex - 1];
+      
+      if (!currentDay) {
+        nextDaysData[currentIndex - 1] = {
+          name: dayName,
+          index: dayNumber,
+          min: timestamp.main.temp_min,
+          max: timestamp.main.temp_max,
+        };
+      } else if (currentDay.name !== dayName) {
+        nextDaysData[currentIndex] = {
+          name: dayName,
+          index: dayNumber,
+          min: timestamp.main.temp_min,
+          max: timestamp.main.temp_max,
+        };
+        currentIndex += 1;
+      } else if (timestamp.main.temp_min < currentDay.min) {
+        nextDaysData[currentIndex - 1] = {
+          ...currentDay,
+          min: timestamp.main.temp_min,
+        };
+      } else if (timestamp.main.temp_max > currentDay.max) {
+        nextDaysData[currentIndex - 1] = {
+          ...currentDay,
+          max: timestamp.main.temp_max,
+        };
+      }
+    }))
+    .then(() => setNextDaysForecastData(nextDaysData))
+    .then(() => setNextDaysForecastIsLoading(false))
+    .then(() => updateLastRequestedCountry());
+  }
 
-        if (dayNumber === today) {
-          return;
-        }
+  const handleSuggestionClick = (city: CitySuggestion) => {
+    setCurrentCityWeather(null);
+    setCurrentCity(city);
+    !showCityWeatherData && setShowCityWeatherData(true);
 
-        const dayName = getDayName(dayNumber);
-
-        let currentDay = nextDaysData[currentIndex - 1];
-        
-        if (!currentDay) {
-          nextDaysData[currentIndex - 1] = {
-            name: dayName,
-            index: dayNumber,
-            min: timestamp.main.temp_min,
-            max: timestamp.main.temp_max,
-          };
-        } else if (currentDay.name !== dayName) {
-          nextDaysData[currentIndex] = {
-            name: dayName,
-            index: dayNumber,
-            min: timestamp.main.temp_min,
-            max: timestamp.main.temp_max,
-          };
-          currentIndex += 1;
-        } else if (timestamp.main.temp_min < currentDay.min) {
-          nextDaysData[currentIndex - 1] = {
-            ...currentDay,
-            min: timestamp.main.temp_min,
-          };
-        } else if (timestamp.main.temp_max > currentDay.max) {
-          nextDaysData[currentIndex - 1] = {
-            ...currentDay,
-            max: timestamp.main.temp_max,
-          };
-        }
-      }))
-      .then(() => setNextDaysForecastData(nextDaysData))
-      .then(() => setLastRequestedCountry(currentCountry))
-      .then(() => setShowWeatherInfo(true));
-    }
-
-    getCurrentWeather();
-    getNextDaysForecast();
+    getCurrentWeather(city);
+    getNextDaysForecast(city);
   }
 
   return (
@@ -400,75 +419,89 @@ function App() {
           onChange={(country: string) => setCurrentCountry(country)}
         />
 
-        { showWeatherInfo && (
+        { showCityWeatherData && (
         <div id='weather-info'>
           <button
             id='close-weather-info'
-            onClick={() => setShowWeatherInfo(!showWeatherInfo)}
+            onClick={() => {
+              setShowCityWeatherData(false);
+
+              setCurrentCity(null);
+              setCurrentCityWeather(null);
+              setCurrentWeatherIsLoading(false);
+              setNextDaysForecastData([]);
+            }}
           >
             <i>
               <Icon icon={faXmark} />
             </i>
           </button>
           
-          <span id='city-name'>{currentWeatherData?.city_name}</span>
+          <span id='city-name'>{currentCity?.name}</span>
 
-          {currentWeatherData && ( <>
-            <span id='temperature'>{displayTemperature(currentWeatherData.temp)}
-              <span id="current-weather-description">
-                {currentWeatherData?.current_weather}
-              </span>
+          <Loading id='temperature' isLoading={currentWeatherIsLoading}>
+            <span>{displayTemperature(currentCityWeather?.temp)}</span>
+
+            <span id="current-weather-description">
+              {currentCityWeather?.current_weather}
             </span>
+          </Loading>
 
-            <section id='more-info'>
-              <div>
-                <div id='limit-temperatures'>
-                  <div id='min'>
-                    <i>
-                      <Icon icon={faArrowDown} />
-                    </i>
-                    {displayTemperature(currentWeatherData.min, false)}
-                  </div>
-                  <div id='max'>
-                    <i>
-                      <Icon icon={faArrowUp} />
-                    </i>
-                    {displayTemperature(currentWeatherData.max, false)}
-                  </div>
+          <section id='more-info'>
+            <div>
+              <Loading isLoading={currentWeatherIsLoading} id='limit-temperatures'>
+                <div id='min'>
+                  <i>
+                    <Icon icon={faArrowDown} />
+                  </i>
+                  {displayTemperature(currentCityWeather?.min, false)}
                 </div>
+                <div id='max'>
+                  <i>
+                    <Icon icon={faArrowUp} />
+                  </i>
+                  {displayTemperature(currentCityWeather?.max, false)}
+                </div>
+              </Loading>
 
-                <div id='wind-speed'>
-                  <span className='light-text'>{countrySettings[currentCountry].label.wind}: </span>{displaySpeed(currentWeatherData.wind_speed)}
-                </div>
-              </div>
+              <Loading isLoading={currentWeatherIsLoading} id='wind-speed'>
+                <span className='light-text'>{countrySettings[currentCountry].label.wind}: </span>
+                <span>{displaySpeed(currentCityWeather?.wind_speed)}</span>
+              </Loading>
+            </div>
 
-              <div>
-                <div id='feels-like'>
-                  <span className='light-text'>{countrySettings[currentCountry].label.feelsLike}: </span>{displayTemperature(currentWeatherData.feels_like)}
-                </div>
+            <div>
+              <Loading isLoading={currentWeatherIsLoading} id='feels-like'>
+                <span className='light-text'>{countrySettings[currentCountry].label.feelsLike}: </span>
+                <span>{displayTemperature(currentCityWeather?.feels_like)}</span>
+              </Loading>
 
-                <div id='air-humidity'>
-                  <span className='light-text'>{countrySettings[currentCountry].label.humidity}: </span>{currentWeatherData.air_humidity}%
-                </div>
-              </div>
-            </section>
-          </> )}
+              <Loading isLoading={currentWeatherIsLoading} id='air-humidity'>
+                <span className='light-text'>{countrySettings[currentCountry].label.humidity}: </span>
+                <span>{currentCityWeather?.air_humidity ? `${currentCityWeather?.air_humidity}%` : ''}</span>
+              </Loading>
+            </div>
+          </section>          
 
           <div className='line-separator' />
 
-          {nextDaysForecastData && (
-            <section id='next-days'>
-              {nextDaysForecastData.map((day, index) => (
-                <div key={index}>
-                  <span className='day-name'>{countrySettings[currentCountry].label.days[day.index].slice(0, 3)}</span>
-                  <div className='temperatures'>
-                    <span className='min'>{displayTemperature(day.min, false)}º</span>
-                    <span className='max'>{displayTemperature(day.max, false)}º</span>
-                  </div>
+          <section id='next-days'>
+            {nextDaysForecastIsLoading ? Array(5).fill(null).map((value, index) => (
+              <Loading
+                key={index}
+                isLoading={true}
+                tag='div'
+              />
+            )) : nextDaysForecastData.map((day, index) => (
+              <div key={index}>
+                <span className='day-name'>{countrySettings[currentCountry].label.days[day.index].slice(0, 3)}</span>
+                <div className='temperatures'>
+                  <span className='min'>{displayFahrenheitTemp(day.min, false)}º</span>
+                  <span className='max'>{displayFahrenheitTemp(day.max, false)}º</span>
                 </div>
-              ))}
-            </section>
-          )}
+              </div>
+            ))}
+          </section>
         </div>
         )}
 
@@ -492,7 +525,7 @@ function App() {
             </button>
           )}
 
-          {showSuggestions && (
+          {suggestions.length > 0 && (
             <SuggestionList
               data={suggestions}
               onClick={(city: CitySuggestion) => handleSuggestionClick(city)}
@@ -513,9 +546,16 @@ function App() {
             </tr>
             {capitalsWeatherData && capitalsWeatherData.map((capital, index) => {
               const lineContent = (
-                <tr key={index} onClick={() => handleSuggestionClick(capital)}>
-                  <td>{displayFahrenheit(capital.min)}</td>
-                  <td>{displayFahrenheit(capital.max)}</td>
+                <tr
+                  key={index}
+                  onClick={() => handleSuggestionClick({
+                    name: capital.name,
+                    lat: capital.lat,
+                    lon: capital.lon
+                  })}
+                >
+                  <td>{displayFahrenheitTemp(capital.min)}</td>
+                  <td>{displayFahrenheitTemp(capital.max)}</td>
                   <td>{capital.name.substring(0, capital.name.indexOf(','))}</td>
                 </tr>
               );
