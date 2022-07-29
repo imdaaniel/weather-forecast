@@ -2,70 +2,24 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon as Icon } from '@fortawesome/react-fontawesome';
 import { faArrowDown, faArrowUp, faXmark } from '@fortawesome/free-solid-svg-icons';
+
 import './assets/css/App.css';
-import SuggestionList from './components/SuggestionList/SuggestionList';
+
 import CitySuggestion from './interfaces/CitySuggestion';
+import WeatherApiParams from './interfaces/WeatherApiParams';
+import CurrentCityWeather from './interfaces/CurrentCityWeather';
+import NextDaysData from './interfaces/NextDaysData';
+import CapitalData from './interfaces/CapitalData';
+import ForecastApiResponse from './interfaces/ForecastApiResponse';
+
+import SuggestionList from './components/SuggestionList/SuggestionList';
 import RadioSelector from './components/RadioSelector/RadioSelector';
 import Loading from './components/Loading/Loading';
 
-interface ICurrentWeatherData {
-  temp: number;
-  current_weather: string;
-  min: number;
-  max: number;
-  wind_speed: number;
-  feels_like: number;
-  air_humidity: number;
-}
-
-interface NextDaysData {
-  name: string;
-  index: number;
-  min: number;
-  max: number;
-}
-
-interface CapitalData {
-  name: string;
-  lat: number;
-  lon: number;
-  min: number;
-  max: number;
-}
-
-interface WeatherApiParams {
-  lat: number;
-  lon: number;
-  appid: string;
-  units: 'imperial' | 'metric';
-  lang: 'en' | 'pt_br';
-}
-
-interface CountrySettings {
-  [key: string]: {
-    label: {
-      title: string;
-      capitals: string;
-      placeholder: string;
-      wind: string;
-      feelsLike: string;
-      humidity: string;
-      days: string[];
-    };
-    temperature: string;
-    speed: string;
-    unitSystem: WeatherApiParams['units'];
-    lang: WeatherApiParams['lang'];
-  };
-}
-
-interface ForecastApiResponse {
-  dt: number;
-  main: {
-    temp_min: number;
-    temp_max: number;
-  }
-}
+import countrySettings from './settings/countrySettings';
+import displayFahrenheitTempHelper from './helpers/displayFahrenheitTempHelper';
+import displaySpeedHelper from './helpers/displaySpeedHelper';
+import displayTemperatureHelper from './helpers/displayTemperatureHelper';
 
 function App() {
   const openWeatherAppId = '4d1b55062e29a4b921f97d8a9c484973';
@@ -77,7 +31,7 @@ function App() {
   const [showCityWeatherData, setShowCityWeatherData] = useState(false);
   
   const [currentCity, setCurrentCity] = useState<CitySuggestion | null>(null);
-  const [currentCityWeather, setCurrentCityWeather] = useState<ICurrentWeatherData | null>(null); 
+  const [currentCityWeather, setCurrentCityWeather] = useState<CurrentCityWeather | null>(null); 
   const [currentWeatherIsLoading, setCurrentWeatherIsLoading] = useState(false);
 
   const [nextDaysForecastData, setNextDaysForecastData] = useState<NextDaysData[]>([]);
@@ -87,56 +41,7 @@ function App() {
   
   const [currentCountry, setCurrentCountry] = useState('US');
   const lastRequestedCountry = useRef('');
-
-  const countrySettings:CountrySettings = {
-    BR: {
-      temperature: 'C',
-      speed: 'km/h',
-      unitSystem: 'metric',
-      lang: 'pt_br',
-      label: {
-        title: 'Previsão do tempo',
-        capitals: 'Capitais',
-        placeholder: 'Digite o nome da cidade',
-        wind: 'Vento',
-        feelsLike: 'Sensação',
-        humidity: 'Umidade',
-        days: [
-          'Domingo',
-          'Segunda-feira',
-          'Terça-feira',
-          'Quarta-feira',
-          'Quinta-feira',
-          'Sexta-feira',
-          'Sábado',
-        ],
-      }
-    },
-    US: {
-      temperature: 'F',
-      speed: 'mph',
-      unitSystem: 'imperial',
-      lang: 'en',
-      label: {
-        title: 'Weather forecast',
-        capitals: 'Capitals',
-        placeholder: 'Enter the city name',
-        wind: 'Wind',
-        feelsLike: 'Feels Like',
-        humidity: 'Humidity',
-        days: [
-          'Sunday',
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-        ],
-      }
-    },
-  }
-
+  
   useEffect(() => {
     const capitalsList:CitySuggestion[] = [
       {
@@ -258,43 +163,6 @@ function App() {
       getCurrentWeather(currentCity);
     }
   }, [currentCountry]);
-
-  const displayFahrenheitTemp = (temp: number, showUnit = true): string => {
-    // F to C
-    temp = currentCountry === 'BR' ? (temp - 32) * (5/9) : temp;
-    temp = Math.trunc(temp);
-
-    return showUnit ? `${temp}º${countrySettings[currentCountry].temperature}` : `${temp}`;
-  }
-
-  const displayTemperature = (temp: number | undefined, showUnit = true): string => {
-    if (!temp) return '';
-
-    if (lastRequestedCountry.current === 'US' && currentCountry === 'BR') {
-      // F to C
-      return displayFahrenheitTemp(temp, showUnit);
-    } else if (lastRequestedCountry.current === 'BR' && currentCountry === 'US') {
-      // C to F
-      temp = temp * (9/5) + 32;
-    }
-    temp = Math.trunc(temp);
-
-    return showUnit ? `${temp}º${countrySettings[currentCountry].temperature}` : temp.toString();
-  }
-
-  const displaySpeed = (speed: number | undefined): string => {
-    if (!speed) return '';
-
-    if (lastRequestedCountry.current === 'US' && currentCountry === 'BR') {
-      // Mph to Km/h
-      speed *= 1.609344;
-    } else if (lastRequestedCountry.current === 'BR' && currentCountry === 'US') {
-      // Km/h to Mph
-      speed /= 1.609344;
-    }
-
-    return `${Math.trunc(speed)}${countrySettings[currentCountry].speed}`;
-  }
 
   const prepareQueryParams = (city: CitySuggestion, fixedUnit = false): string => {
     const params:WeatherApiParams = {
@@ -440,7 +308,7 @@ function App() {
           <span id='city-name'>{currentCity?.name}</span>
 
           <Loading id='temperature' isLoading={currentWeatherIsLoading}>
-            <span>{displayTemperature(currentCityWeather?.temp)}</span>
+            <span>{displayTemperatureHelper(currentCityWeather?.temp, lastRequestedCountry.current, currentCountry)}</span>
 
             <span id="current-weather-description">
               {currentCityWeather?.current_weather}
@@ -454,26 +322,26 @@ function App() {
                   <i>
                     <Icon icon={faArrowDown} />
                   </i>
-                  {displayTemperature(currentCityWeather?.min, false)}
+                  {displayTemperatureHelper(currentCityWeather?.min, lastRequestedCountry.current, currentCountry, false)}
                 </div>
                 <div id='max'>
                   <i>
                     <Icon icon={faArrowUp} />
                   </i>
-                  {displayTemperature(currentCityWeather?.max, false)}
+                  {displayTemperatureHelper(currentCityWeather?.max, lastRequestedCountry.current, currentCountry, false)}
                 </div>
               </Loading>
 
               <Loading isLoading={currentWeatherIsLoading} id='wind-speed'>
                 <span className='light-text'>{countrySettings[currentCountry].label.wind}: </span>
-                <span>{displaySpeed(currentCityWeather?.wind_speed)}</span>
+                <span>{displaySpeedHelper(currentCityWeather?.wind_speed, lastRequestedCountry.current, currentCountry)}</span>
               </Loading>
             </div>
 
             <div>
               <Loading isLoading={currentWeatherIsLoading} id='feels-like'>
                 <span className='light-text'>{countrySettings[currentCountry].label.feelsLike}: </span>
-                <span>{displayTemperature(currentCityWeather?.feels_like)}</span>
+                <span>{displayTemperatureHelper(currentCityWeather?.feels_like, lastRequestedCountry.current, currentCountry)}</span>
               </Loading>
 
               <Loading isLoading={currentWeatherIsLoading} id='air-humidity'>
@@ -496,8 +364,8 @@ function App() {
               <div key={index}>
                 <span className='day-name'>{countrySettings[currentCountry].label.days[day.index].slice(0, 3)}</span>
                 <div className='temperatures'>
-                  <span className='min'>{displayFahrenheitTemp(day.min, false)}º</span>
-                  <span className='max'>{displayFahrenheitTemp(day.max, false)}º</span>
+                  <span className='min'>{displayFahrenheitTempHelper(day.min, currentCountry, false)}º</span>
+                  <span className='max'>{displayFahrenheitTempHelper(day.max, currentCountry, false)}º</span>
                 </div>
               </div>
             ))}
@@ -554,8 +422,8 @@ function App() {
                     lon: capital.lon
                   })}
                 >
-                  <td>{displayFahrenheitTemp(capital.min)}</td>
-                  <td>{displayFahrenheitTemp(capital.max)}</td>
+                  <td>{displayFahrenheitTempHelper(capital.min, currentCountry)}</td>
+                  <td>{displayFahrenheitTempHelper(capital.max, currentCountry)}</td>
                   <td>{capital.name.substring(0, capital.name.indexOf(','))}</td>
                 </tr>
               );
