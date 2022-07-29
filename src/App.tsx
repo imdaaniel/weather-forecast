@@ -39,7 +39,7 @@ interface WeatherApiParams {
   appid: string;
   units: 'imperial' | 'metric';
   lang: 'en' | 'pt_br';
-};
+}
 
 interface CountrySettings {
   [key: string]: {
@@ -57,7 +57,15 @@ interface CountrySettings {
     unitSystem: WeatherApiParams['units'];
     lang: WeatherApiParams['lang'];
   };
-};
+}
+
+interface ForecastApiResponse {
+  dt: number;
+  main: {
+    temp_min: number;
+    temp_max: number;
+  }
+}
 
 function App() {
   const openWeatherAppId = '4d1b55062e29a4b921f97d8a9c484973';
@@ -73,6 +81,8 @@ function App() {
   const [currentWeatherIsLoading, setCurrentWeatherIsLoading] = useState(false);
 
   const [nextDaysForecastData, setNextDaysForecastData] = useState<NextDaysData[]>([]);
+  const [nextDaysForecastIsLoading, setNextDaysForecastIsLoading] = useState(false);
+
   const [capitalsWeatherData, setCapitalsWeatherData] = useState<CapitalData[]>([]);
   
   const [currentCountry, setCurrentCountry] = useState('US');
@@ -184,7 +194,7 @@ function App() {
     const cityPromises = [];
 
     for (let i = 0; i < capitalsList.length; i++) {
-      const queryParams = prepareQueryParams(capitalsList[i]);
+      const queryParams = prepareQueryParams(capitalsList[i], true);
       
       let cityDataPromise = axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
       .then(res => res.data)
@@ -199,7 +209,7 @@ function App() {
 
     Promise.all(cityPromises)
     .then(capitalsData => setCapitalsWeatherData(capitalsData))
-    .then(() => lastRequestedCountry.current = currentCountry);
+    .then(() => updateLastRequestedCountry());
 
     return () => {};
   }, []);
@@ -245,7 +255,7 @@ function App() {
 
   useEffect(() => {
     if (currentCity) {
-      handleSuggestionClick(currentCity);
+      getCurrentWeather(currentCity);
     }
   }, [currentCountry]);
 
@@ -286,11 +296,11 @@ function App() {
     return `${Math.trunc(speed)}${countrySettings[currentCountry].speed}`;
   }
 
-  const prepareQueryParams = (city: CitySuggestion): string => {
+  const prepareQueryParams = (city: CitySuggestion, fixedUnit = false): string => {
     const params:WeatherApiParams = {
       lat: city.lat,
       lon: city.lon,
-      units: countrySettings[currentCountry].unitSystem,
+      units: fixedUnit ? 'imperial' : countrySettings[currentCountry].unitSystem,
       lang: countrySettings[currentCountry].lang,
       appid: openWeatherAppId,
     };
@@ -298,98 +308,92 @@ function App() {
     return new URLSearchParams(params as any).toString();
   }
 
-  const handleSuggestionClick = (city: CitySuggestion) => {
+  const updateLastRequestedCountry = () => {
+    if (lastRequestedCountry.current !== currentCountry) {
+      lastRequestedCountry.current = currentCountry;
+    }
+  }
+
+  const getCurrentWeather = async (city: CitySuggestion) => {
+    setCurrentWeatherIsLoading(true);
     const queryParams = prepareQueryParams(city);
     
-    const getCurrentWeather = async () => {
-      setCurrentWeatherIsLoading(true);
-      
-      // remove
-      setTimeout(async () => {
-  
-        await axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
-        .then(res => res.data)
-        .then(data => setCurrentCityWeather({
-          temp: Math.trunc(data.main.temp),
-          current_weather: data.weather[0].description,
-          min: Math.trunc(data.main.temp_min),
-          max: Math.trunc(data.main.temp_max),
-          wind_speed: Math.trunc(data.wind.speed),
-          feels_like: Math.trunc(data.main.feels_like),
-          air_humidity: data.main.humidity,
-        }))
-        .then(() => setCurrentWeatherIsLoading(false))
-        .then(() => lastRequestedCountry.current = currentCountry)
-        .then(() => setSearchInputValue(''));
-      }, 4000);
-    }
+    await axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
+    .then(res => res.data)
+    .then(data => setCurrentCityWeather({
+      temp: Math.trunc(data.main.temp),
+      current_weather: data.weather[0].description,
+      min: Math.trunc(data.main.temp_min),
+      max: Math.trunc(data.main.temp_max),
+      wind_speed: Math.trunc(data.wind.speed),
+      feels_like: Math.trunc(data.main.feels_like),
+      air_humidity: data.main.humidity,
+    }))
+    .then(() => setCurrentWeatherIsLoading(false))
+    .then(() => updateLastRequestedCountry())
+    .then(() => setSearchInputValue(''));
+  }
 
-    const getNextDaysForecast = async () => {
-      const getDayName = (index: number): string => countrySettings[currentCountry].label.days[index] || '';
+  const getNextDaysForecast = async (city: CitySuggestion) => {
+    setNextDaysForecastIsLoading(true);
+    const queryParams = prepareQueryParams(city, true);
 
-      interface ForecastApiResponse {
-        dt: number;
-        main: {
-          temp_min: number;
-          temp_max: number;
-        }
+    let nextDaysData:NextDaysData[] = [];
+    let currentIndex = 1;
+    const today = new Date().getUTCDay();
+
+    await axios.get(`${weatherApiUrl}/data/2.5/forecast?${queryParams}`)
+    .then(res => res.data.list)
+    .then((list:ForecastApiResponse[]) => list.forEach(timestamp => {
+      const dayNumber = new Date(timestamp.dt * 1000).getUTCDay();
+
+      if (dayNumber === today) {
+        return;
       }
 
-      let nextDaysData:NextDaysData[] = [];
-      let currentIndex = 1;
-      const today = new Date().getUTCDay();
+      const dayName = countrySettings[currentCountry].label.days[dayNumber];
 
-      await axios.get(`${weatherApiUrl}/data/2.5/forecast?${queryParams}`)
-      .then(res => res.data.list)
-      .then((list:ForecastApiResponse[]) => list.forEach(timestamp => {
-        const dayNumber = new Date(timestamp.dt * 1000).getUTCDay();
+      let currentDay = nextDaysData[currentIndex - 1];
+      
+      if (!currentDay) {
+        nextDaysData[currentIndex - 1] = {
+          name: dayName,
+          index: dayNumber,
+          min: timestamp.main.temp_min,
+          max: timestamp.main.temp_max,
+        };
+      } else if (currentDay.name !== dayName) {
+        nextDaysData[currentIndex] = {
+          name: dayName,
+          index: dayNumber,
+          min: timestamp.main.temp_min,
+          max: timestamp.main.temp_max,
+        };
+        currentIndex += 1;
+      } else if (timestamp.main.temp_min < currentDay.min) {
+        nextDaysData[currentIndex - 1] = {
+          ...currentDay,
+          min: timestamp.main.temp_min,
+        };
+      } else if (timestamp.main.temp_max > currentDay.max) {
+        nextDaysData[currentIndex - 1] = {
+          ...currentDay,
+          max: timestamp.main.temp_max,
+        };
+      }
+    }))
+    .then(() => setNextDaysForecastData(nextDaysData))
+    .then(() => setNextDaysForecastIsLoading(false))
+    .then(() => updateLastRequestedCountry());
+  }
 
-        if (dayNumber === today) {
-          return;
-        }
-
-        const dayName = getDayName(dayNumber);
-
-        let currentDay = nextDaysData[currentIndex - 1];
-        
-        if (!currentDay) {
-          nextDaysData[currentIndex - 1] = {
-            name: dayName,
-            index: dayNumber,
-            min: timestamp.main.temp_min,
-            max: timestamp.main.temp_max,
-          };
-        } else if (currentDay.name !== dayName) {
-          nextDaysData[currentIndex] = {
-            name: dayName,
-            index: dayNumber,
-            min: timestamp.main.temp_min,
-            max: timestamp.main.temp_max,
-          };
-          currentIndex += 1;
-        } else if (timestamp.main.temp_min < currentDay.min) {
-          nextDaysData[currentIndex - 1] = {
-            ...currentDay,
-            min: timestamp.main.temp_min,
-          };
-        } else if (timestamp.main.temp_max > currentDay.max) {
-          nextDaysData[currentIndex - 1] = {
-            ...currentDay,
-            max: timestamp.main.temp_max,
-          };
-        }
-      }))
-      .then(() => setNextDaysForecastData(nextDaysData))
-      .then(() => lastRequestedCountry.current = currentCountry)
-      .then(() => setShowCityWeatherData(true));
-    }
-
+  const handleSuggestionClick = (city: CitySuggestion) => {
     setCurrentCityWeather(null);
     setCurrentCity(city);
     !showCityWeatherData && setShowCityWeatherData(true);
 
-    getCurrentWeather();
-    getNextDaysForecast();
+    getCurrentWeather(city);
+    getNextDaysForecast(city);
   }
 
   return (
@@ -481,19 +485,23 @@ function App() {
 
           <div className='line-separator' />
 
-          {nextDaysForecastData && (
-            <section id='next-days'>
-              {nextDaysForecastData.map((day, index) => (
-                <div key={index}>
-                  <span className='day-name'>{countrySettings[currentCountry].label.days[day.index].slice(0, 3)}</span>
-                  <div className='temperatures'>
-                    <span className='min'>{displayTemperature(day.min, false)}º</span>
-                    <span className='max'>{displayTemperature(day.max, false)}º</span>
-                  </div>
+          <section id='next-days'>
+            {nextDaysForecastIsLoading ? Array(5).fill(null).map((value, index) => (
+              <Loading
+                key={index}
+                isLoading={true}
+                tag='div'
+              />
+            )) : nextDaysForecastData.map((day, index) => (
+              <div key={index}>
+                <span className='day-name'>{countrySettings[currentCountry].label.days[day.index].slice(0, 3)}</span>
+                <div className='temperatures'>
+                  <span className='min'>{displayFahrenheitTemp(day.min, false)}º</span>
+                  <span className='max'>{displayFahrenheitTemp(day.max, false)}º</span>
                 </div>
-              ))}
-            </section>
-          )}
+              </div>
+            ))}
+          </section>
         </div>
         )}
 
