@@ -17,7 +17,15 @@ html {
 
 body {
   font-family: 'Open Sans', sans-serif;
-  background: linear-gradient(0deg, rgba(254,187,37,1) 0%, rgba(251,127,18,1) 100%);
+
+  /* orange */
+  background: linear-gradient(0deg, #FEBB25 50%, #FB8815 100%);
+
+  /* blue */
+  /* background: linear-gradient(0deg, #9ac6fc 0, #3389F1 100%); */
+
+  /* gray */
+  /* background: linear-gradient(0deg, #d7e0eb 0, #7f8891 100%); */
 }
 
 main {
@@ -69,6 +77,8 @@ header h1 {
   color: var(--secondary-text-color);
   margin: 20px 0;
   word-wrap: break-word;
+  min-height: 55px;
+  width: 100%;
 }
 
 #weather-info #current-weather-description {
@@ -209,7 +219,6 @@ main > .line-separator {
 #capitals table th {
   font-weight: lighter;
   font-size: 14px;
-  width: 45px;
 }
 
 #capitals table td {
@@ -221,6 +230,7 @@ main > .line-separator {
 #capitals table td {
   padding: 15px 10px 0 0;
   color: #222222;
+  min-width: 45px;
 }
 
 #capitals table th:last-child,
@@ -231,10 +241,6 @@ main > .line-separator {
 @media only screen and (min-width: 768px) {
   html, body {
     min-height: 100%;
-  }
-
-  html > body {
-    background: linear-gradient(0deg, rgba(254,187,37,1) 50%, rgba(251,127,18,1) 100%);
   }
 
   #container {
@@ -257,6 +263,10 @@ main > .line-separator {
     margin-top: 10px;
     width: calc(100% - 100px);
     box-shadow: 0 1px 10px rgb(129, 129, 129);
+  }
+
+  div#weather-info #temperature {
+    width: 350px;
   }
 
   div#weather-info .line-separator {
