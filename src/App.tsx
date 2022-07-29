@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import { FontAwesomeIcon as Icon } from '@fortawesome/react-fontawesome';
 import { faArrowDown, faArrowUp, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 import './assets/css/App.css';
+
+import weather from './services/weather';
+import countrySettings from './settings/countrySettings';
 
 import CitySuggestion from './interfaces/CitySuggestion';
 import WeatherApiParams from './interfaces/WeatherApiParams';
@@ -16,15 +18,11 @@ import SuggestionList from './components/SuggestionList/SuggestionList';
 import RadioSelector from './components/RadioSelector/RadioSelector';
 import Loading from './components/Loading/Loading';
 
-import countrySettings from './settings/countrySettings';
 import displayFahrenheitTempHelper from './helpers/displayFahrenheitTempHelper';
 import displaySpeedHelper from './helpers/displaySpeedHelper';
 import displayTemperatureHelper from './helpers/displayTemperatureHelper';
 
 function App() {
-  const openWeatherAppId = '4d1b55062e29a4b921f97d8a9c484973';
-  const weatherApiUrl = 'https://api.openweathermap.org';
-
   const [searchInputValue, setSearchInputValue]= useState('');
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
 
@@ -101,7 +99,7 @@ function App() {
     for (let i = 0; i < capitalsList.length; i++) {
       const queryParams = prepareQueryParams(capitalsList[i], true);
       
-      let cityDataPromise = axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
+      let cityDataPromise = weather.get(`/data/2.5/weather?${queryParams}`)
       .then(res => res.data)
       .then((data) => ({
         ...capitalsList[i],
@@ -129,9 +127,8 @@ function App() {
         state?: string;
       }
   
-      const locations:Location[] = await axios
-      .get(`${weatherApiUrl}/geo/1.0/direct?q=${searchInputValue}&appid=${openWeatherAppId}`
-        + '&limit=5')
+      const locations:Location[] = await weather
+      .get(`/geo/1.0/direct?q=${searchInputValue}&limit=5`)
       .then(res => res.data);
       
       const suggestionsList:CitySuggestion[] = locations.map(location => ({
@@ -170,7 +167,6 @@ function App() {
       lon: city.lon,
       units: fixedUnit ? 'imperial' : countrySettings[currentCountry].unitSystem,
       lang: countrySettings[currentCountry].lang,
-      appid: openWeatherAppId,
     };
 
     return new URLSearchParams(params as any).toString();
@@ -186,7 +182,7 @@ function App() {
     setCurrentWeatherIsLoading(true);
     const queryParams = prepareQueryParams(city);
     
-    await axios.get(`${weatherApiUrl}/data/2.5/weather?${queryParams}`)
+    await weather.get(`/data/2.5/weather?${queryParams}`)
     .then(res => res.data)
     .then(data => setCurrentCityWeather({
       temp: Math.trunc(data.main.temp),
@@ -210,7 +206,7 @@ function App() {
     let currentIndex = 1;
     const today = new Date().getUTCDay();
 
-    await axios.get(`${weatherApiUrl}/data/2.5/forecast?${queryParams}`)
+    await weather.get(`/data/2.5/forecast?${queryParams}`)
     .then(res => res.data.list)
     .then((list:ForecastApiResponse[]) => list.forEach(timestamp => {
       const dayNumber = new Date(timestamp.dt * 1000).getUTCDay();
