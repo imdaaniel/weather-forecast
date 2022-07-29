@@ -1,4 +1,4 @@
-import CitySuggestion from '../../interfaces/CitySuggestion';
+import CitySuggestion from '../../types/CitySuggestion';
 import './style.css';
 
 type Props = {

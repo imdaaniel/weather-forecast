@@ -1,4 +1,4 @@
-import CountrySettings from "../interfaces/CountrySettings";
+import CountrySettings from "../types/CountrySettings";
 
 const countrySettings:CountrySettings = {
   BR: {
