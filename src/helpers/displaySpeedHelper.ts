@@ -15,7 +15,9 @@ const displaySpeedHelper = (
     speed /= 1.609344;
   }
 
-  return `${Math.trunc(speed)}${countrySettings[currentCountry].speed}`;
+  const strSpeed = speed >= 1 ? Math.trunc(speed).toString() : speed.toFixed(2);
+
+  return `${strSpeed}${countrySettings[currentCountry].speed}`;
 }
 
 export default displaySpeedHelper;

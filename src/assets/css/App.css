@@ -208,14 +208,21 @@ main > .line-separator {
 #capitals table {
   display: flex;
   flex-direction: column;
+  margin-top: 15px;
 }
 
 #capitals table #second-table-title {
   display: none;
 }
 
-#capitals table tr > td {
-  cursor: pointer;
+#capitals table tr {
+  margin: 10px 0;
+  min-height: 22px;
+  width: 225px;
+}
+
+#capitals table tr.loading {
+  width: 210px;
 }
 
 #capitals table th {
@@ -225,19 +232,21 @@ main > .line-separator {
 
 #capitals table td {
   font-weight: bold;
-  min-width: 35px;
+  cursor: pointer;
 }
 
 #capitals table th,
 #capitals table td {
-  padding: 15px 10px 0 0;
+  padding-right: 10px;
   color: #222222;
+  min-height: 35px;
   min-width: 45px;
 }
 
 #capitals table th:last-child,
 #capitals table td:last-child  {
   padding-left: 10px;
+  min-width: 80px;
 }
 
 @media only screen and (min-width: 768px) {
@@ -296,7 +305,7 @@ main > .line-separator {
 
   section#capitals table {
     flex-wrap: wrap;
-    height: 250px;
+    height: 280px;
   }
 
   #capitals table tr#second-table-title {

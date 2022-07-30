@@ -1,6 +1,6 @@
 import WeatherApiParams from "./WeatherApiParams";
 
-export default interface CountrySettings {
+type CountrySettings = {
   [key: string]: {
     label: {
       title: string;
@@ -17,3 +17,5 @@ export default interface CountrySettings {
     lang: WeatherApiParams['lang'];
   };
 };
+
+export default CountrySettings;
