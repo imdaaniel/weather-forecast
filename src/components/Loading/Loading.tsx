@@ -1,18 +1,16 @@
-import { ReactNode } from 'react';
 import './style.css';
 
 type Props = {
-  children?: ReactNode;
   isLoading: boolean;
-  id?: string;
   tag?: string;
-}
+} & Record<string, any>
 
-function Loading({children, isLoading, id, tag}: Props) {
+function Loading(props: Props) {
+  const { children, isLoading, tag, ...otherProps} = props;
   const Tag = `${tag ?? 'span'}` as keyof JSX.IntrinsicElements;
 
   return (
-    <Tag id={id} className={isLoading ? 'loading' : ''}>{children}</Tag>
+    <Tag className={isLoading ? 'loading' : ''} {...otherProps}>{children}</Tag>
   );
 }
 

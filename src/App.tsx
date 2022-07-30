@@ -36,6 +36,7 @@ function App() {
   const [nextDaysForecastIsLoading, setNextDaysForecastIsLoading] = useState(false);
 
   const [capitalsWeatherData, setCapitalsWeatherData] = useState<CapitalData[]>([]);
+  const [capitalsWeatherIsLoading, setCapitalsWeatherIsLoading] = useState(true);
   
   type CurrentCountry = 'BR' | 'US';
 
@@ -95,7 +96,7 @@ function App() {
         lon: 54.3774014,
       }
     ];
-    
+
     const cityPromises = [];
 
     for (let i = 0; i < capitalsList.length; i++) {
@@ -114,6 +115,7 @@ function App() {
 
     Promise.all(cityPromises)
     .then(capitalsData => setCapitalsWeatherData(capitalsData))
+    .then(() => setCapitalsWeatherIsLoading(false))
     .then(() => updateLastRequestedCountry());
 
     return () => {};
@@ -181,18 +183,19 @@ function App() {
   }
 
   const getCurrentWeather = async (city: CitySuggestion) => {
+    console.log(city);
     setCurrentCityWeatherIsLoading(true);
     const queryParams = prepareQueryParams(city);
     
     await weather.get(`/data/2.5/weather?${queryParams}`)
     .then(res => res.data)
     .then(data => setCurrentCityWeatherData({
-      temp: Math.trunc(data.main.temp),
+      temp: data.main.temp,
       current_weather: data.weather[0].description,
-      min: Math.trunc(data.main.temp_min),
-      max: Math.trunc(data.main.temp_max),
-      wind_speed: Math.trunc(data.wind.speed),
-      feels_like: Math.trunc(data.main.feels_like),
+      min: data.main.temp_min,
+      max: data.main.temp_max,
+      wind_speed: data.wind.speed,
+      feels_like: data.main.feels_like,
       air_humidity: data.main.humidity,
     }))
     .then(() => setCurrentCityWeatherIsLoading(false))
@@ -410,15 +413,28 @@ function App() {
               <th scope='col'>Max</th>
               <th scope='col'></th>
             </tr>
-            {capitalsWeatherData && capitalsWeatherData.map((capital, index) => {
+            {capitalsWeatherIsLoading ? Array(10).fill(null).map((_, index) => {
+              const lineContent = (
+                <Loading isLoading={true} key={index} tag='tr'>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </Loading>
+              );
+
+              return index === 5 ? ( <>
+                <tr id='second-table-title' key='second-table-title'>
+                  <th scope='col'>Min</th>
+                  <th scope='col'>Max</th>
+                  <th scope='col'></th>
+                </tr>
+                {lineContent}
+              </> ) : lineContent;
+            }) : capitalsWeatherData.map((capital, index) => {
               const lineContent = (
                 <tr
                   key={index}
-                  onClick={() => handleSuggestionClick({
-                    name: capital.name,
-                    lat: capital.lat,
-                    lon: capital.lon
-                  })}
+                  onClick={() => handleSuggestionClick(capital as CitySuggestion)}
                 >
                   <td>{displayFahrenheitTempHelper(capital.min, currentCountry)}</td>
                   <td>{displayFahrenheitTempHelper(capital.max, currentCountry)}</td>
