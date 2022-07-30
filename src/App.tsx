@@ -13,6 +13,7 @@ import CurrentCityWeather from './types/CurrentCityWeather';
 import NextDaysData from './types/NextDaysData';
 import CapitalData from './types/CapitalData';
 import ForecastApiResponse from './types/ForecastApiResponse';
+import CurrentCountry from './types/CurrentCountry';
 
 import SuggestionList from './components/SuggestionList/SuggestionList';
 import RadioSelector from './components/RadioSelector/RadioSelector';
@@ -37,8 +38,6 @@ function App() {
 
   const [capitalsWeatherData, setCapitalsWeatherData] = useState<CapitalData[]>([]);
   const [capitalsWeatherIsLoading, setCapitalsWeatherIsLoading] = useState(true);
-  
-  type CurrentCountry = 'BR' | 'US';
 
   const [currentCountry, setCurrentCountry] = useState<CurrentCountry>('US');
   const lastRequestedCountry = useRef('');
