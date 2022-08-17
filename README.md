@@ -8,9 +8,8 @@
 ### [Click here to view the page](https://imdaaniel.github.io/weather-forecast/)
 
 <br>
-
-### Just enter the name of any city in the world and see how the weather is right now, and also the forecast for the next days.
-### You can display data in US (imperial) or Brazil (metric) format, what also changes the page language. Check it out! 😎
+Just enter the name of any city in the world and see how the weather is right now, and also the forecast for the next days.
+You can display data in US (imperial) or Brazil (metric) format, what also changes the page language. Check it out! 😎
 
 <br>
 
